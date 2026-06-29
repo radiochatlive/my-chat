@@ -17,14 +17,22 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Endpoint για λήψη μηνυμάτων
+// Endpoint για λήψη μηνυμάτων (Φιλτράρει αυτόματα τα πριβέ ανάλογα με το ποιος τα ζητάει)
 app.get('/api/messages', (req, res) => {
-    res.json(messages);
+    const requestingUser = req.query.user;
+    if (!requestingUser) return res.json(messages.filter(m => !m.to)); // Αν δεν λέει χρήστη, δείξε μόνο τα δημόσια
+
+    // Δείξε τα μηνύματα που είναι: δημόσια Ή στάλθηκαν από αυτόν Ή στάλθηκαν σε αυτόν
+    const filteredMessages = messages.filter(m => {
+        return !m.to || m.user === requestingUser || m.to === requestingUser;
+    });
+
+    res.json(filteredMessages);
 });
 
-// Endpoint για αποστολή μηνύματος (κείμενο ή εικόνα/GIF)
+// Endpoint για αποστολή μηνύματος (Υποστηρίζει πλέον και το πεδίο "to" για πριβέ)
 app.post('/api/messages', (req, res) => {
-    const { user, text, image } = req.body;
+    const { user, text, image, to } = req.body;
     if (!user) return res.status(400).json({ error: 'Missing user' });
 
     const newMessage = {
@@ -32,11 +40,14 @@ app.post('/api/messages', (req, res) => {
         user,
         text: text || "",
         image: image || null,
+        to: to || null, // Αν έχει όνομα, είναι πριβέ. Αν είναι null, πάει στο γενικό.
         timestamp: Date.now()
     };
 
     messages.push(newMessage);
-    if (messages.length > 50) messages.shift(); // Κρατάει τα τελευταία 50 μηνύματα
+    
+    // Έξυπνος κόφτης: Κρατάει τα τελευταία 100 μηνύματα γενικά για να μην φουσκώνει η RAM
+    if (messages.length > 100) messages.shift(); 
 
     res.status(201).json(newMessage);
 });

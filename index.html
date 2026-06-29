@@ -12,6 +12,12 @@
             display: flex; flex-direction: column; width: 100vw; height: 100vh; 
             padding: 10px; box-sizing: border-box;
         }
+        #chat-header {
+            background: rgba(0, 30, 0, 0.9); border: 2px solid #00ff00;
+            padding: 8px 15px; margin-bottom: 5px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-weight: bold; color: #00ff00;
+        }
         #chat-wrapper {
             position: relative; flex: 1; border: 4px solid #00ff00; 
             margin-bottom: 10px; border-radius: 15px; display: flex; overflow: hidden;
@@ -37,6 +43,15 @@
         #users-list::-webkit-scrollbar { width: 6px; }
         #users-list::-webkit-scrollbar-track { background: #111; }
         #users-list::-webkit-scrollbar-thumb { background: #00ff00; border-radius: 10px; }
+
+        .user-row {
+            margin: 5px 0; padding: 6px; border: 1px solid #00ff00; 
+            border-radius: 5px; cursor: pointer; background: rgba(0,40,0,0.4);
+            transition: 0.2s; text-align: center; font-weight: bold;
+        }
+        .user-row:hover {
+            background: #00ff00; color: #000;
+        }
 
         #chat-cover {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -73,6 +88,13 @@
         .message.own { 
             background: rgba(0, 100, 0, 0.85); align-self: flex-end; 
         }
+        .message.private-msg {
+            border: 1px dashed #ff00ff;
+            background: rgba(60, 0, 60, 0.7);
+        }
+        .message.own.private-msg {
+            background: rgba(100, 0, 100, 0.85);
+        }
         #emoji-picker {
             display: none; position: absolute; bottom: 60px; background: #111; 
             border: 2px solid #00ff00; padding: 10px; border-radius: 10px; 
@@ -80,6 +102,8 @@
         }
         .emoji { font-size: 24px; cursor: pointer; padding: 4px; }
         .emoji:hover { background: #00ff00; color: #000; border-radius: 4px; }
+        .back-btn { background: #ff3333; color: white; padding: 4px 10px; height: auto; font-size: 13px; }
+        .back-btn:hover { background: #ff0000; }
     </style>
     <style>
         body {
@@ -92,10 +116,16 @@
 <body>
     <div id="welcome-overlay"></div>
     <div id="main-container">
+        <div id="chat-header" style="display: none;">
+            <span id="room-title">Δωμάτιο: Γενικό Chat</span>
+            <button id="back-to-global" class="back-btn" style="display: none;">⬅️ Επιστροφή στο Γενικό</button>
+        </div>
+
         <div id="chat-wrapper">
             <div id="chat-box"></div>
             <div id="users-list">
-                <strong>Ενεργοί Χρήστες:</strong><br>
+                <strong>Ενεργοί Χρήστες:</strong>
+                <p style="font-size:11px; margin:2px 0 8px 0; color:#aaa;">(Κλικ για Πριβέ)</p>
                 <div id="users-box"></div>
             </div>
             <div id="chat-cover">
@@ -124,12 +154,12 @@
     <script>
         let currentName = localStorage.getItem("chatUser");
         let isLoggedIn = !!currentName && !currentName.startsWith("Guest_");
+        let activePrivateTarget = null; // null = Γενικό Chat, όνομα = Πριβέ με αυτόν
 
         const notificationSound = new Audio('ping.mp3');
         let initialLoad = true;
         let lastKnownMsgId = null;
 
-        // Ενημέρωση παρουσίας (Online Status) στον δικό μας server
         async function updatePresence() {
             if (!isLoggedIn) return;
             try {
@@ -141,7 +171,6 @@
             } catch(e) {}
         }
 
-        // Λήψη λίστας online χρηστών
         async function fetchPresence() {
             if (!isLoggedIn) return;
             try {
@@ -150,16 +179,41 @@
                 const box = document.getElementById("users-box");
                 box.innerHTML = "";
                 users.forEach(u => {
-                    box.innerHTML += `<div style="margin:3px 0; padding:4px;">👤 ${u}</div>`;
+                    if (u !== currentName) {
+                        box.innerHTML += `<div class="user-row" onclick="startPrivateChat('${u}')">👤 ${u}</div>`;
+                    } else {
+                        box.innerHTML += `<div style="margin:5px 0; padding:6px; text-align:center; color:#888;">👤 ${u} (Εσύ)</div>`;
+                    }
                 });
             } catch(e) {}
         }
+
+        function startPrivateChat(targetUser) {
+            activePrivateTarget = targetUser;
+            document.getElementById("room-title").textContent = `Συνομιλία με: ${targetUser} [Πριβέ]`;
+            document.getElementById("room-title").style.color = "#ff00ff";
+            document.getElementById("chat-wrapper").style.borderColor = "#ff00ff";
+            document.getElementById("back-to-global").style.display = "inline-block";
+            initialLoad = true;
+            fetchMessages();
+        }
+
+        document.getElementById("back-to-global").onclick = () => {
+            activePrivateTarget = null;
+            document.getElementById("room-title").textContent = `Δωμάτιο: Γενικό Chat`;
+            document.getElementById("room-title").style.color = "#00ff00";
+            document.getElementById("chat-wrapper").style.borderColor = "#00ff00";
+            document.getElementById("back-to-global").style.display = "none";
+            initialLoad = true;
+            fetchMessages();
+        };
 
         if (isLoggedIn) {
             updatePresence();
             setInterval(updatePresence, 5000);
             fetchPresence();
             setInterval(fetchPresence, 4000);
+            document.getElementById("chat-header").style.display = "flex";
         }
 
         document.getElementById("enter-btn").onclick = async () => {
@@ -181,16 +235,20 @@
             currentName = "Guest_" + Math.floor(Math.random() * 1000);
         }
 
-        // Αποστολή μηνύματος ή εικόνας στον server
         async function sendMessage(text, imageUrl = null) {
             if (!isLoggedIn || (!text && !imageUrl)) return;
             try {
                 await fetch('/api/messages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user: currentName, text: text || "", image: imageUrl })
+                    body: JSON.stringify({ 
+                        user: currentName, 
+                        text: text || "", 
+                        image: imageUrl,
+                        to: activePrivateTarget 
+                    })
                 });
-                fetchMessages(); // Ανανέωση αμέσως μετά την αποστολή
+                fetchMessages();
             } catch(e) {}
         }
 
@@ -204,21 +262,33 @@
             if (e.key === "Enter") document.getElementById("send-btn").click();
         });
 
-        // Συγχρονισμός μηνυμάτων σε πραγματικό χρόνο χωρίς Firebase
         const chatBox = document.getElementById("chat-box");
         async function fetchMessages() {
             if (!isLoggedIn) return;
             try {
-                const res = await fetch('/api/messages');
+                const res = await fetch(`/api/messages?user=${encodeURIComponent(currentName)}`);
                 const messages = await res.json();
                 
                 let htmlContent = "";
                 let newestMsgId = null;
                 let lastMessageUser = null;
 
-                messages.forEach(data => {
+                // Φιλτράρισμα στην πλευρά του client για το τι θα δείξει στην οθόνη
+                const visibleMessages = messages.filter(m => {
+                    if (activePrivateTarget === null) {
+                        return !m.to; // Μόνο γενικά
+                    } else {
+                        // Μόνο πριβέ ανάμεσα σε μένα και τον επιλεγμένο
+                        return m.to === activePrivateTarget || (m.user === activePrivateTarget && m.to === currentName);
+                    }
+                });
+
+                visibleMessages.forEach(data => {
                     const isOwn = data.user === currentName;
-                    htmlContent += `<div class="message ${isOwn ? 'own' : ''}"><strong>${data.user}:</strong> `;
+                    const isPrivate = !!data.to;
+                    
+                    htmlContent += `<div class="message ${isOwn ? 'own' : ''} ${isPrivate ? 'private-msg' : ''}">`;
+                    htmlContent += `<strong>${data.user}${isPrivate ? ' [Πριβέ]' : ''}:</strong> `;
                     if (data.text) htmlContent += data.text;
                     if (data.image) htmlContent += `<br><img src="${data.image}" style="max-width:280px; border-radius:8px; margin-top:6px;">`;
                     htmlContent += `</div>`;
@@ -227,17 +297,13 @@
                     lastMessageUser = data.user;
                 });
 
-                // Έλεγχος αν ο χρήστης είναι ήδη σκρολαρισμένος κάτω-κάτω (με ανοχή 30px)
                 const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight <= 30;
-
                 chatBox.innerHTML = htmlContent;
 
-                // Κατέβασμα μπάρας: Μόνο στην πρώτη φόρτωση Ή αν είμαστε ήδη κάτω Ή αν άλλαξε το ID του τελευταίου μηνύματος
                 if (initialLoad || isAtBottom || newestMsgId !== lastKnownMsgId) {
                     chatBox.scrollTop = chatBox.scrollHeight;
                 }
 
-                // Παίζει ήχος μόνο αν το μήνυμα είναι νέο και δεν είναι δικό μας
                 if (!initialLoad && newestMsgId !== lastKnownMsgId && lastMessageUser !== currentName) {
                     notificationSound.play().catch(e => console.log("Sound played after interaction."));
                 }
@@ -251,10 +317,9 @@
 
         if (isLoggedIn) {
             fetchMessages();
-            setInterval(fetchMessages, 2000); // Έλεγχος για νέα μηνύματα κάθε 2 δευτερόλεπτα
+            setInterval(fetchMessages, 2000);
         }
 
-        // Έξοδος από το Chat
         document.getElementById("exit-btn").onclick = async () => {
             try {
                 await fetch('/api/logout', {
@@ -267,7 +332,6 @@
             location.reload();
         };
 
-        // Emojis
         const emojis = ["😀","😂","😍","🥰","😎","🔥","❤️","👍","👎","🎉","🚀","💯","🙌","😢","😱"];
         const picker = document.getElementById("emoji-picker");
         emojis.forEach(emo => {
@@ -287,7 +351,6 @@
         };
         document.addEventListener("click", () => picker.style.display = "none");
 
-        // Ανέβασμα Εικόνων & GIF
         document.getElementById("image-btn").onclick = () => document.getElementById("image-upload").click();
         document.getElementById("image-upload").onchange = (e) => {
             const file = e.target.files[0];
@@ -297,7 +360,6 @@
             reader.readAsDataURL(file);
         };
 
-        // Dark/Light Theme
         let isDark = true;
         document.getElementById("toggle-theme").onclick = () => {
             isDark = !isDark;
