@@ -1,7 +1,7 @@
 {
-  "name": "live-chat-socketio",
+  "name": "sinefa-chat-server",
   "version": "1.0.0",
-  "description": "Realtime Chat",
+  "description": "Μια αυτόνομη εφαρμογή chat χωρίς εξωτερικές βάσεις",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

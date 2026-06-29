@@ -5,35 +5,66 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-
-// Ρύθμιση Socket.IO για να επιτρέπει συνδέσεις από παντού (CORS)
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+    maxHttpBufferSize: 1e7 // Επιτρέπει ανέβασμα εικόνων έως 10MB
 });
 
-// Σερβίρισμα του αρχείου index.html
+const PORT = process.env.PORT || 3000;
+
+// Σερβίρισμα των στατικών αρχείων (HTML, εικόνες κλπ)
+app.use(express.static(__dirname));
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Διαχείριση συνδέσεων
-io.on('connection', (socket) => {
-    console.log('Χρήστης συνδέθηκε');
+// Αποθήκευση των ενεργών χρηστών στη μνήμη του server
+let activeUsers = new Set();
+// Κρατάμε τα τελευταία 50 μηνύματα στη μνήμη για να τα βλέπει όποιος μπαίνει
+let messageHistory = [];
 
-    socket.on('chat message', (msg) => {
-        io.emit('chat message', msg); // Αναμετάδοση σε όλους
+io.on('connection', (socket) => {
+    let myUsername = null;
+
+    // Στέλνουμε το ιστορικό των μηνυμάτων στον νέο χρήστη
+    socket.emit('chat-history', messageHistory);
+
+    // Όταν ένας χρήστης κάνει είσοδο
+    socket.on('register-user', (username) => {
+        myUsername = username;
+        activeUsers.add(username);
+        // Ενημέρωση όλων για τη νέα λίστα χρηστών
+        io.emit('update-users', Array.from(activeUsers));
     });
 
+    // Όταν έρχεται ένα νέο μήνυμα (κείμενο ή εικόνα)
+    socket.on('send-message', (data) => {
+        if (!myUsername) return;
+
+        const msgObject = {
+            user: myUsername,
+            text: data.text || "",
+            image: data.image || null,
+            timestamp: Date.now()
+        };
+
+        // Προσθήκη στο ιστορικό
+        messageHistory.push(msgObject);
+        if (messageHistory.length > 50) messageHistory.shift();
+
+        // Εκπομπή του μηνύματος σε όλους
+        io.emit('new-message', msgObject);
+    });
+
+    // Όταν αποσυνδέεται ένας χρήστης
     socket.on('disconnect', () => {
-        console.log('Χρήστης αποσυνδέθηκε');
+        if (myUsername) {
+            activeUsers.delete(myUsername);
+            io.emit('update-users', Array.from(activeUsers));
+        }
     });
 });
 
-// ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ: Παίρνει τη θύρα του Server ή χρησιμοποιεί την 3000 τοπικά
-const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Το chat τρέχει στη θύρα ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
