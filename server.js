@@ -1,12 +1,7 @@
 const express = require('express');
-const http = require('http'); // Προσθήκη για Socket.io
-const { Server } = require('socket.io'); // Προσθήκη για Socket.io
 const path = require('path');
 const fs = require('fs');
-
 const app = express();
-const server = http.createServer(app); // Τύλιγμα του app
-const io = new Server(server); // Αρχικοποίηση Socket.io
 const PORT = process.env.PORT || 10000;
 
 app.use(express.json({ limit: '50mb' }));
@@ -122,9 +117,6 @@ app.post('/api/messages', (req, res) => {
     }
     
     if (messages.length > 100) messages.shift(); 
-    
-    // ΕΔΩ ΕΙΝΑΙ ΤΟ ΚΛΕΙΔΙ: Στέλνουμε το μήνυμα σε όλους ακαριαία
-    io.emit('new_message', newMessage);
 
     res.status(201).json(newMessage);
 });
@@ -206,6 +198,6 @@ app.post('/api/logout', (req, res) => {
     res.sendStatus(200);
 });
 
-server.listen(PORT, () => {
+app.listen(PORT, () => {
     console.log(`To chat τρέχει στη θύρα ${PORT}`);
 });

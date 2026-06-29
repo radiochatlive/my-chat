@@ -353,15 +353,13 @@
             fetchMessages();
         };
 
-      if (isLoggedIn) {
-    updatePresence();
-    fetchPresence();
-    document.getElementById("chat-header").style.display = "flex";
-    
-    // Αφαιρέσαμε τα setInterval(..., 4000) γιατί προκαλούσαν καθυστέρηση.
-    // Από εδώ και πέρα, οι ενημερώσεις πρέπει να έρχονται μέσω Socket.io
-    // από τον server (server.js), σπρώχνοντας τα δεδομένα μόνο όταν αλλάζουν.
-}
+        if (isLoggedIn) {
+            updatePresence();
+            setInterval(updatePresence, 4000);
+            fetchPresence();
+            setInterval(fetchPresence, 4000);
+            document.getElementById("chat-header").style.display = "flex";
+        }
 
         document.getElementById("enter-btn").onclick = async () => {
             let rawInput = document.getElementById("username").value.trim();
