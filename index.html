@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Sinefa Chat</title>
-    <script src="/socket.io/socket.io.js"></script>
     <style>
         html, body { 
             margin: 0; padding: 0; height: 100%; font-family: sans-serif; 
@@ -188,18 +187,17 @@
             <div id="upload-status" style="display:none;">⏳ Ανέβασμα...</div>
             <input type="file" id="image-upload" accept="image/*,image/gif" style="display:none;">
             <button id="toggle-theme">🌙</button>
-            <div class="volume-container">
+			<div class="volume-container">
                 <span id="volume-icon">🔊</span>
                 <input type="range" id="volume-control" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
             </div>
-            <button id="exit-btn">🚪 Έξοδος</button>
+			<button id="exit-btn">🚪 Έξοδος</button>
         </div>
     </div>
 
     <div id="emoji-picker"></div>
 
     <script>
-        const socket = io(); // Εκκίνηση Socket.io
         let deviceToken = localStorage.getItem("chatDeviceToken");
         if (!deviceToken) {
             deviceToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -219,36 +217,6 @@
         let unreadFromUsers = new Set(); 
         let knownMessageIds = new Set();
         let globalUsersAvatars = {}; 
-
-        // Listener για real-time μηνύματα
-        socket.on('new_message', (m) => {
-            if (!knownMessageIds.has(m.id)) {
-                knownMessageIds.add(m.id);
-                // Αν είναι το σωστό δωμάτιο, το εμφανίζουμε
-                const isVisible = (activePrivateTarget === null && !m.to) || (m.to === activePrivateTarget || (m.user === activePrivateTarget && m.to === currentName));
-                if (isVisible) {
-                    renderSingleMessage(m);
-                    if (m.user !== currentName) notificationSound.play().catch(e => {});
-                }
-            }
-        });
-
-        // Προσθήκη ενός μηνύματος στο DOM (για να μην ξανα-render όλο το box)
-        function renderSingleMessage(data) {
-            const isOwn = data.user === currentName;
-            const isPrivate = !!data.to;
-            let userAv = isOwn ? currentAvatar : (data.avatar || globalUsersAvatars[data.user] || "");
-            let msgAvatarTag = userAv ? `<img src="${userAv}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
-            
-            let html = `<div class="message ${isOwn ? 'own' : ''} ${isPrivate ? 'private-msg' : ''}">` +
-                       msgAvatarTag +
-                       `<div class="message-content"><strong>${data.user}${isPrivate ? ' [Πριβέ]' : ''}:</strong> ` +
-                       (data.text ? `<span>${data.text}</span>` : "") +
-                       (data.image ? `<img src="${data.image}" style="max-width:280px; border-radius:8px; margin-top:6px;">` : "") +
-                       `</div></div>`;
-            chatBox.insertAdjacentHTML('beforeend', html);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
 
         const myAvatarInput = document.getElementById("my-avatar-input");
         myAvatarInput.onchange = (e) => {
@@ -289,7 +257,10 @@
                 usersData.forEach(u => {
                     let name = u.user;
                     let av = u.avatar || "";
-                    if(name !== currentName && av) { globalUsersAvatars[name] = av; }
+                    
+                    if(name !== currentName && av) {
+                        globalUsersAvatars[name] = av;
+                    }
                     
                     let finalAvatar = name === currentName ? currentAvatar : (av || globalUsersAvatars[name] || "");
                     let imgTag = finalAvatar ? `<img src="${finalAvatar}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
@@ -416,7 +387,7 @@
                     })
                 });
                 if (res.status === 403) handleBannedUser();
-                // Δεν χρειάζεται fetchMessages() εδώ, το Socket.io θα το φέρει αυτόματα
+                fetchMessages();
             } catch(e) {}
         }
 
@@ -439,11 +410,33 @@
                 
                 const messages = await res.json();
                 let htmlContent = "";
+                let hasIncomingNewPrivate = false;
+                let shouldPlaySound = false;
 
                 messages.forEach(m => {
-                    knownMessageIds.add(m.id);
-                    if (m.avatar && m.user !== currentName) globalUsersAvatars[m.user] = m.avatar;
+                    const isOwn = m.user === currentName;
+                    const isNew = !knownMessageIds.has(m.id);
+
+                    if (m.avatar && m.user !== currentName) {
+                        globalUsersAvatars[m.user] = m.avatar; 
+                    }
+
+                    if (isNew) {
+                        knownMessageIds.add(m.id);
+                        if (!isOwn && !initialLoad) {
+                            if (!m.to && activePrivateTarget === null) shouldPlaySound = true;
+                            else if (m.to === currentName) shouldPlaySound = true;
+                        }
+                        if (m.to === currentName && m.user !== activePrivateTarget) {
+                            if (!unreadFromUsers.has(m.user)) {
+                                unreadFromUsers.add(m.user);
+                                hasIncomingNewPrivate = true;
+                            }
+                        }
+                    }
                 });
+
+                if (hasIncomingNewPrivate) fetchPresence(); 
 
                 const visibleMessages = messages.filter(m => {
                     if (activePrivateTarget === null) return !m.to; 
@@ -453,6 +446,7 @@
                 visibleMessages.forEach(data => {
                     const isOwn = data.user === currentName;
                     const isPrivate = !!data.to;
+                    
                     let userAv = isOwn ? currentAvatar : (data.avatar || globalUsersAvatars[data.user] || "");
                     let msgAvatarTag = userAv ? `<img src="${userAv}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
 
@@ -465,13 +459,20 @@
                     htmlContent += `</div></div>`;
                 });
 
+                const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight <= 30;
                 chatBox.innerHTML = htmlContent;
-                chatBox.scrollTop = chatBox.scrollHeight;
+
+                if (initialLoad || isAtBottom) chatBox.scrollTop = chatBox.scrollHeight;
+                if (shouldPlaySound) notificationSound.play().catch(e => {});
+                
                 initialLoad = false;
             } catch(e) {}
         }
 
-        if (isLoggedIn) fetchMessages();
+        if (isLoggedIn) {
+            fetchMessages();
+            setInterval(fetchMessages, 2000);
+        }
 
         document.getElementById("exit-btn").onclick = async () => {
             try {
@@ -493,6 +494,7 @@
             if (val === 0) volumeIcon.textContent = "🔇";
             else if (val < 0.4) volumeIcon.textContent = "🔈";
             else volumeIcon.textContent = "🔊";
+            
             notificationSound.currentTime = 0;
             notificationSound.play().catch(err => {});
         });
@@ -520,6 +522,7 @@
             const file = e.target.files[0];
             if (!file || !isLoggedIn) return;
 
+            // Εμφάνιση loading
             const statusDiv = document.getElementById("upload-status");
             statusDiv.style.display = "block";
             document.getElementById("image-btn").disabled = true;
@@ -527,6 +530,7 @@
             const reader = new FileReader();
             reader.onload = async (ev) => {
                 await sendMessage("", ev.target.result);
+                // Κρύψιμο loading μόλις τελειώσει
                 statusDiv.style.display = "none";
                 document.getElementById("image-btn").disabled = false;
             };
