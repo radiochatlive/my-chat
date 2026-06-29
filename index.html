@@ -35,31 +35,44 @@
         #chat-box::-webkit-scrollbar-thumb:hover { background: #33ff33; }
 
         #users-list {
-            width: 180px; padding: 10px; overflow-y: auto; color: #0f0; 
+            width: 190px; padding: 10px; overflow-y: auto; color: #0f0; 
             border-left: 2px solid #00ff00; background: rgba(0, 20, 0, 0.8);
             scrollbar-width: thin;
             scrollbar-color: #00ff00 #111;
         }
         #users-list::-webkit-scrollbar { width: 6px; }
         #users-list::-webkit-scrollbar-track { background: #111; }
-        #users-list::-webkit-scrollbar-thumb { background: #00ff00; border-radius: 10px; }
 
         .user-row {
             margin: 5px 0; padding: 6px; border: 1px solid #00ff00; 
             border-radius: 5px; cursor: pointer; background: rgba(0,40,0,0.4);
-            transition: 0.2s; text-align: center; font-weight: bold;
-            position: relative;
+            transition: 0.2s; text-align: left; font-weight: bold;
+            display: flex; align-items: center; gap: 8px; position: relative;
         }
         .user-row:hover {
             background: #00ff00; color: #000;
         }
         .unread-badge {
             background: #ff3333; color: white; font-size: 11px; padding: 2px 5px;
-            border-radius: 4px; display: inline-block; margin-left: 5px;
+            border-radius: 4px; display: inline-block; position: absolute; right: 5px;
             animation: blinker 1.5s linear infinite;
         }
         @keyframes blinker {
             50% { opacity: 0.4; }
+        }
+
+        /* Στυλ για τα Avatars */
+        .avatar {
+            width: 30px; height: 30px; border-radius: 50%; border: 1px solid #00ff00;
+            object-fit: cover; background: #222; shrink: 0;
+        }
+        .avatar-preview-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: 2px dashed #00ff00;
+            display: flex; align-items: center; justify-content: center; color: #00ff00;
+            cursor: pointer; overflow: hidden; background: #111; font-size: 11px; font-weight: bold;
+        }
+        .avatar-preview-btn img {
+            width: 100%; height: 100%; object-fit: cover;
         }
 
         #chat-cover {
@@ -75,7 +88,11 @@
             font-weight: bold; text-align: center;
         }
         #login-screen { 
-            display: flex; gap: 10px; margin-bottom: 10px; justify-content: center; 
+            display: flex; gap: 10px; margin-bottom: 10px; justify-content: center; align-items: center;
+        }
+        #username {
+            height: 40px; padding: 8px; background: #111; color: #0f0; 
+            border: 2px solid #00ff00; border-radius: 8px; box-sizing: border-box;
         }
         #chat-controls {
             display: flex; gap: 8px; margin-bottom: 10px; justify-content: center; 
@@ -91,30 +108,30 @@
         }
         button:hover { background: #33ff33; }
         
-        /* Στυλ για την αυξομείωση έντασης */
         .volume-container {
             display: flex; align-items: center; gap: 5px; background: #111; 
             border: 2px solid #00ff00; border-radius: 8px; padding: 0 8px; height: 36px;
         }
         .volume-container span { font-size: 16px; color: #00ff00; }
-        .volume-slider {
-            width: 70px; cursor: pointer; accent-color: #00ff00;
-        }
+        .volume-slider { width: 70px; cursor: pointer; accent-color: #00ff00; }
 
+        /* Μηνύματα με Avatar */
         .message { 
             max-width: 80%; padding: 8px 12px; border-radius: 12px; 
             background: rgba(0, 50, 0, 0.7); align-self: flex-start;
+            display: flex; gap: 10px; align-items: flex-start;
         }
         .message.own { 
             background: rgba(0, 100, 0, 0.85); align-self: flex-end; 
+            flex-direction: row-reverse;
         }
+        .message-content { display: flex; flex-direction: column; }
+
         .message.private-msg {
-            border: 1px dashed #ff00ff;
-            background: rgba(60, 0, 60, 0.7);
+            border: 1px dashed #ff00ff; background: rgba(60, 0, 60, 0.7);
         }
-        .message.own.private-msg {
-            background: rgba(100, 0, 100, 0.85);
-        }
+        .message.own.private-msg { background: rgba(100, 0, 100, 0.85); }
+        
         #emoji-picker {
             display: none; position: absolute; bottom: 60px; background: #111; 
             border: 2px solid #00ff00; padding: 10px; border-radius: 10px; 
@@ -154,6 +171,9 @@
         </div>
          
         <div id="login-screen">
+            <div id="avatar-select-btn" class="avatar-preview-btn">➕ Φώτο</div>
+            <input type="file" id="avatar-input" accept="image/*" style="display: none;">
+            
             <input type="text" id="username" placeholder="Το όνομά σου..." maxlength="20">
             <button id="enter-btn">Είσοδος</button>
         </div>
@@ -179,40 +199,52 @@
 
     <script>
         let currentName = localStorage.getItem("chatUser");
+        let currentAvatar = localStorage.getItem("chatAvatar") || ""; // Φόρτωση αποθηκευμένου avatar
         let isLoggedIn = !!currentName && !currentName.startsWith("Guest_");
         let activePrivateTarget = null; 
 
-        // Αρχικοποίηση ήχου και έντασης (Default στο 0.5 / 50%)
         const notificationSound = new Audio('ping.mp3');
         notificationSound.volume = 0.5;
 
         let initialLoad = true;
         let unreadFromUsers = new Set(); 
         let knownMessageIds = new Set();
+        let globalUsersAvatars = {}; // Κρατάει στη μνήμη τα είδωλα των άλλων χρηστών
 
-        // Λειτουργία για την αλλαγή έντασης
+        // Διαχείριση Ανεβάσματος Avatar στο Login
+        const avatarSelectBtn = document.getElementById("avatar-select-btn");
+        const avatarInput = document.getElementById("avatar-input");
+        
+        // Αν υπάρχει ήδη αποθηκευμένο avatar, το δείχνει στην οθόνη εισόδου
+        if(currentAvatar && avatarSelectBtn) {
+            avatarSelectBtn.innerHTML = `<img src="${currentAvatar}">`;
+        }
+
+        avatarSelectBtn.onclick = () => avatarInput.click();
+        avatarInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                currentAvatar = ev.target.result;
+                avatarSelectBtn.innerHTML = `<img src="${currentAvatar}">`;
+                localStorage.setItem("chatAvatar", currentAvatar);
+            };
+            reader.readAsDataURL(file);
+        };
+
         const volumeControl = document.getElementById("volume-control");
         const volumeIcon = document.getElementById("volume-icon");
 
         volumeControl.addEventListener("input", (e) => {
             const val = parseFloat(e.target.value);
             notificationSound.volume = val;
-            
-            // Αλλαγή εικονιδίου ανάλογα με την ένταση
-            if (val === 0) {
-                volumeIcon.textContent = "🔇";
-            } else if (val < 0.4) {
-                volumeIcon.textContent = "🔈";
-            } else {
-                volumeIcon.textContent = "🔊";
-            }
+            if (val === 0) volumeIcon.textContent = "🔇";
+            else if (val < 0.4) volumeIcon.textContent = "🔈";
+            else volumeIcon.textContent = "🔊";
         });
-
-        // Όταν ο χρήστης αφήνει το ποντίκι, κάνει ένα test ping για να ακούσει την ένταση
         volumeControl.addEventListener("change", () => {
-            if (notificationSound.volume > 0) {
-                notificationSound.play().catch(e => {});
-            }
+            if (notificationSound.volume > 0) notificationSound.play().catch(e => {});
         });
 
         async function updatePresence() {
@@ -221,7 +253,7 @@
                 await fetch('/api/presence', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user: currentName })
+                    body: JSON.stringify({ user: currentName, avatar: currentAvatar }) // Στέλνει και το avatar
                 });
             } catch(e) {}
         }
@@ -230,15 +262,28 @@
             if (!isLoggedIn) return;
             try {
                 const res = await fetch('/api/presence');
-                const users = await res.json();
+                const usersData = await res.json(); 
+                
+                // Υποστήριξη αν ο server επιστρέφει απλό πίνακα ή πίνακα με αντικείμενα {user, avatar}
                 const box = document.getElementById("users-box");
                 box.innerHTML = "";
-                users.forEach(u => {
-                    if (u !== currentName) {
-                        const badge = unreadFromUsers.has(u) ? ` <span class="unread-badge">Νέο!</span>` : '';
-                        box.innerHTML += `<div class="user-row" onclick="startPrivateChat('${u}')">👤 ${u}${badge}</div>`;
+                
+                usersData.forEach(u => {
+                    let name = typeof u === 'object' ? u.user : u;
+                    let av = typeof u === 'object' ? (u.avatar || "") : "";
+                    
+                    if(name !== currentName && av) {
+                        globalUsersAvatars[name] = av; // Αποθήκευση στη μνήμη
+                    }
+
+                    let imgTag = av ? `<img src="${av}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
+
+                    if (name !== currentName) {
+                        const badge = unreadFromUsers.has(name) ? ` <span class="unread-badge">Νέο!</span>` : '';
+                        box.innerHTML += `<div class="user-row" onclick="startPrivateChat('${name}')">${imgTag} <span>${name}</span>${badge}</div>`;
                     } else {
-                        box.innerHTML += `<div style="margin:5px 0; padding:6px; text-align:center; color:#888;">👤 ${u} (Εσύ)</div>`;
+                        let myImg = currentAvatar ? `<img src="${currentAvatar}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
+                        box.innerHTML += `<div style="margin:5px 0; padding:6px; display:flex; align-items:center; gap:8px; color:#888; font-weight:bold;">${myImg} <span>${name} (Εσύ)</span></div>`;
                     }
                 });
             } catch(e) {}
@@ -300,6 +345,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         user: currentName, 
+                        avatar: currentAvatar, // Στέλνει το avatar μαζί με το μήνυμα
                         text: text || "", 
                         image: imageUrl,
                         to: activePrivateTarget 
@@ -334,15 +380,16 @@
                     const isOwn = m.user === currentName;
                     const isNew = !knownMessageIds.has(m.id);
 
+                    if (m.avatar && m.user !== currentName) {
+                        globalUsersAvatars[m.user] = m.avatar; // Κρατάμε στη μνήμη το avatar από το μήνυμα
+                    }
+
                     if (isNew) {
                         knownMessageIds.add(m.id);
 
                         if (!isOwn && !initialLoad) {
-                            if (!m.to && activePrivateTarget === null) {
-                                shouldPlaySound = true;
-                            } else if (m.to === currentName) {
-                                shouldPlaySound = true;
-                            }
+                            if (!m.to && activePrivateTarget === null) shouldPlaySound = true;
+                            else if (m.to === currentName) shouldPlaySound = true;
                         }
 
                         if (m.to === currentName && m.user !== activePrivateTarget) {
@@ -359,22 +406,25 @@
                 }
 
                 const visibleMessages = messages.filter(m => {
-                    if (activePrivateTarget === null) {
-                        return !m.to; 
-                    } else {
-                        return m.to === activePrivateTarget || (m.user === activePrivateTarget && m.to === currentName);
-                    }
+                    if (activePrivateTarget === null) return !m.to; 
+                    else return m.to === activePrivateTarget || (m.user === activePrivateTarget && m.to === currentName);
                 });
 
                 visibleMessages.forEach(data => {
                     const isOwn = data.user === currentName;
                     const isPrivate = !!data.to;
+                    
+                    // Επιλογή σωστού avatar για το μήνυμα
+                    let userAv = isOwn ? currentAvatar : (data.avatar || globalUsersAvatars[data.user] || "");
+                    let msgAvatarTag = userAv ? `<img src="${userAv}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
 
                     htmlContent += `<div class="message ${isOwn ? 'own' : ''} ${isPrivate ? 'private-msg' : ''}">`;
+                    htmlContent += msgAvatarTag;
+                    htmlContent += `<div class="message-content">`;
                     htmlContent += `<strong>${data.user}${isPrivate ? ' [Πριβέ]' : ''}:</strong> `;
-                    if (data.text) htmlContent += data.text;
-                    if (data.image) htmlContent += `<br><img src="${data.image}" style="max-width:280px; border-radius:8px; margin-top:6px;">`;
-                    htmlContent += `</div>`;
+                    if (data.text) htmlContent += `<span>${data.text}</span>`;
+                    if (data.image) htmlContent += `<img src="${data.image}" style="max-width:280px; border-radius:8px; margin-top:6px;">`;
+                    htmlContent += `</div></div>`;
                 });
 
                 const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight <= 30;
