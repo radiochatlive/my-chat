@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Sinefa Chat</title>
-    <script src="/socket.io/socket.io.js"></script>
     <style>
         html, body { 
             margin: 0; padding: 0; height: 100%; font-family: sans-serif; 
@@ -36,56 +35,37 @@
         #chat-box::-webkit-scrollbar-thumb:hover { background: #33ff33; }
 
         #users-list {
-            width: 190px; padding: 10px; overflow-y: auto; color: #0f0; 
+            width: 180px; padding: 10px; overflow-y: auto; color: #0f0; 
             border-left: 2px solid #00ff00; background: rgba(0, 20, 0, 0.8);
             scrollbar-width: thin;
             scrollbar-color: #00ff00 #111;
         }
         #users-list::-webkit-scrollbar { width: 6px; }
+        #users-list::-webkit-scrollbar-track { background: #111; }
+        #users-list::-webkit-scrollbar-thumb { background: #00ff00; border-radius: 10px; }
 
         .user-row {
             margin: 5px 0; padding: 6px; border: 1px solid #00ff00; 
             border-radius: 5px; cursor: pointer; background: rgba(0,40,0,0.4);
-            transition: 0.2s; text-align: left; font-weight: bold;
-            display: flex; align-items: center; gap: 8px; position: relative;
+            transition: 0.2s; text-align: center; font-weight: bold;
+            position: relative;
         }
         .user-row:hover {
             background: #00ff00; color: #000;
         }
-        
-        .my-row {
-            margin: 5px 0; padding: 6px; border: 1px dashed #00ff00; 
-            border-radius: 5px; cursor: pointer; background: rgba(0,20,0,0.2);
-            display: flex; align-items: center; gap: 8px; color: #888; font-weight: bold;
-            transition: 0.2s;
-        }
-        .my-row:hover {
-            border-style: solid; background: rgba(0,100,0,0.3); color: #fff;
-        }
-
-        .ban-btn {
-            background: #ff3333; color: white; border: none; border-radius: 4px;
-            padding: 2px 6px; font-size: 11px; cursor: pointer; font-weight: bold;
-            position: absolute; right: 5px; z-index: 10; display: inline-block;
-        }
-        .ban-btn:hover { background: #ff0000; }
-
         .unread-badge {
             background: #ff3333; color: white; font-size: 11px; padding: 2px 5px;
-            border-radius: 4px; display: inline-block; position: absolute; right: 45px;
+            border-radius: 4px; display: inline-block; margin-left: 5px;
             animation: blinker 1.5s linear infinite;
         }
-        @keyframes blinker { 50% { opacity: 0.4; } }
-
-        .avatar {
-            width: 30px; height: 30px; border-radius: 50%; border: 1px solid #00ff00;
-            object-fit: cover; background: #222; flex-shrink: 0;
+        @keyframes blinker {
+            50% { opacity: 0.4; }
         }
 
         #chat-cover {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000000; display: flex; align-items: center; 
-            justify-content: center; text-align: center; z-index: 1000; border-radius: 15px;
+            background: rgba(0, 0, 0, 0.95); display: flex; align-items: center; 
+            justify-content: center; text-align: center; z-index: 100; border-radius: 15px;
             color: #00ff00; font-size: 18px;
         }
         #welcome-overlay {
@@ -95,11 +75,7 @@
             font-weight: bold; text-align: center;
         }
         #login-screen { 
-            display: flex; gap: 10px; margin-bottom: 10px; justify-content: center; align-items: center;
-        }
-        #username {
-            height: 40px; padding: 8px; background: #111; color: #0f0; 
-            border: 2px solid #00ff00; border-radius: 8px; box-sizing: border-box; width: 220px;
+            display: flex; gap: 10px; margin-bottom: 10px; justify-content: center; 
         }
         #chat-controls {
             display: flex; gap: 8px; margin-bottom: 10px; justify-content: center; 
@@ -115,26 +91,30 @@
         }
         button:hover { background: #33ff33; }
         
+        /* Στυλ για την αυξομείωση έντασης */
         .volume-container {
             display: flex; align-items: center; gap: 5px; background: #111; 
             border: 2px solid #00ff00; border-radius: 8px; padding: 0 8px; height: 36px;
         }
         .volume-container span { font-size: 16px; color: #00ff00; }
-        .volume-slider { width: 70px; cursor: pointer; accent-color: #00ff00; }
+        .volume-slider {
+            width: 70px; cursor: pointer; accent-color: #00ff00;
+        }
 
         .message { 
             max-width: 80%; padding: 8px 12px; border-radius: 12px; 
             background: rgba(0, 50, 0, 0.7); align-self: flex-start;
-            display: flex; gap: 10px; align-items: flex-start;
         }
         .message.own { 
             background: rgba(0, 100, 0, 0.85); align-self: flex-end; 
-            flex-direction: row-reverse;
         }
-        .message-content { display: flex; flex-direction: column; }
-        .message.private-msg { border: 1px dashed #ff00ff; background: rgba(60, 0, 60, 0.7); }
-        .message.own.private-msg { background: rgba(100, 0, 100, 0.85); }
-        
+        .message.private-msg {
+            border: 1px dashed #ff00ff;
+            background: rgba(60, 0, 60, 0.7);
+        }
+        .message.own.private-msg {
+            background: rgba(100, 0, 100, 0.85);
+        }
         #emoji-picker {
             display: none; position: absolute; bottom: 60px; background: #111; 
             border: 2px solid #00ff00; padding: 10px; border-radius: 10px; 
@@ -143,7 +123,7 @@
         .emoji { font-size: 24px; cursor: pointer; padding: 4px; }
         .emoji:hover { background: #00ff00; color: #000; border-radius: 4px; }
         .back-btn { background: #ff3333; color: white; padding: 4px 10px; height: auto; font-size: 13px; }
-        #upload-status { color: #ff0; font-size: 12px; margin-left: 5px; font-weight: bold; }
+        .back-btn:hover { background: #ff0000; }
     </style>
     <style>
         body {
@@ -169,112 +149,80 @@
                 <div id="users-box"></div>
             </div>
             <div id="chat-cover">
-                <p>Για να δεις τα μηνύματα και να συμμετάσχεις<br>βάλε το όνομά σου και κάνε Είσοδος!<br><br> Σε περίπτωση ανάρμοστης συμπεριφοράς,<br> έχουμε τη δυνατότητα να διαγράψουμε<br> ή να αποκλείσουμε (ban) οριστικά <br>οποιονδήποτε χρήστη δεν σέβεται τους κανόνες,<br> εμποδίζοντας την εκ νέου είσοδό του στη σελίδα μας.</p>
+                <p>Για να δεις τα μηνύματα και να συμμετάσχεις<br>βάλε το όνομά σου και κάνε Είσοδος!</p>
             </div>
         </div>
          
         <div id="login-screen">
-            <input type="text" id="username" placeholder="Το όνομά σου...">
+            <input type="text" id="username" placeholder="Το όνομά σου..." maxlength="20">
             <button id="enter-btn">Είσοδος</button>
         </div>
          
-        <input type="file" id="my-avatar-input" accept="image/*" style="display: none;">
-
         <div id="chat-controls" style="display:none;">
             <input type="text" id="msg-input" placeholder="Γράψε μήνυμα...">
             <button id="send-btn">📤 Αποστολή</button>
             <button id="emoji-btn">😀</button>
-            <button id="image-btn">🖼️</button>
-            <div id="upload-status" style="display:none;">⏳ Ανέβασμα...</div>
-            <input type="file" id="image-upload" accept="image/*,image/gif" style="display:none;">
-            <button id="toggle-theme">🌙</button>
+            
             <div class="volume-container">
                 <span id="volume-icon">🔊</span>
                 <input type="range" id="volume-control" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
             </div>
+
+            <button id="image-btn">🖼️</button>
+            <input type="file" id="image-upload" accept="image/*,image/gif" style="display:none;">
             <button id="exit-btn">🚪 Έξοδος</button>
+            <button id="toggle-theme">🌙</button>
         </div>
     </div>
 
     <div id="emoji-picker"></div>
 
     <script>
-        const socket = io(); // Εκκίνηση Socket.io
-        let deviceToken = localStorage.getItem("chatDeviceToken");
-        if (!deviceToken) {
-            deviceToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
-            localStorage.setItem("chatDeviceToken", deviceToken);
-        }
-
         let currentName = localStorage.getItem("chatUser");
-        let currentAvatar = localStorage.getItem("chatAvatar") || ""; 
-        let isAdmin = localStorage.getItem("chatIsAdmin") === "true";
         let isLoggedIn = !!currentName && !currentName.startsWith("Guest_");
         let activePrivateTarget = null; 
 
+        // Αρχικοποίηση ήχου και έντασης (Default στο 0.5 / 50%)
         const notificationSound = new Audio('ping.mp3');
         notificationSound.volume = 0.5;
 
         let initialLoad = true;
         let unreadFromUsers = new Set(); 
         let knownMessageIds = new Set();
-        let globalUsersAvatars = {}; 
 
-        // Listener για real-time μηνύματα
-        socket.on('new_message', (m) => {
-            if (!knownMessageIds.has(m.id)) {
-                knownMessageIds.add(m.id);
-                // Αν είναι το σωστό δωμάτιο, το εμφανίζουμε
-                const isVisible = (activePrivateTarget === null && !m.to) || (m.to === activePrivateTarget || (m.user === activePrivateTarget && m.to === currentName));
-                if (isVisible) {
-                    renderSingleMessage(m);
-                    if (m.user !== currentName) notificationSound.play().catch(e => {});
-                }
+        // Λειτουργία για την αλλαγή έντασης
+        const volumeControl = document.getElementById("volume-control");
+        const volumeIcon = document.getElementById("volume-icon");
+
+        volumeControl.addEventListener("input", (e) => {
+            const val = parseFloat(e.target.value);
+            notificationSound.volume = val;
+            
+            // Αλλαγή εικονιδίου ανάλογα με την ένταση
+            if (val === 0) {
+                volumeIcon.textContent = "🔇";
+            } else if (val < 0.4) {
+                volumeIcon.textContent = "🔈";
+            } else {
+                volumeIcon.textContent = "🔊";
             }
         });
 
-        // Προσθήκη ενός μηνύματος στο DOM (για να μην ξανα-render όλο το box)
-        function renderSingleMessage(data) {
-            const isOwn = data.user === currentName;
-            const isPrivate = !!data.to;
-            let userAv = isOwn ? currentAvatar : (data.avatar || globalUsersAvatars[data.user] || "");
-            let msgAvatarTag = userAv ? `<img src="${userAv}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
-            
-            let html = `<div class="message ${isOwn ? 'own' : ''} ${isPrivate ? 'private-msg' : ''}">` +
-                       msgAvatarTag +
-                       `<div class="message-content"><strong>${data.user}${isPrivate ? ' [Πριβέ]' : ''}:</strong> ` +
-                       (data.text ? `<span>${data.text}</span>` : "") +
-                       (data.image ? `<img src="${data.image}" style="max-width:280px; border-radius:8px; margin-top:6px;">` : "") +
-                       `</div></div>`;
-            chatBox.insertAdjacentHTML('beforeend', html);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        const myAvatarInput = document.getElementById("my-avatar-input");
-        myAvatarInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                currentAvatar = ev.target.result;
-                localStorage.setItem("chatAvatar", currentAvatar);
-                updatePresence(); 
-                fetchPresence();  
-            };
-            reader.readAsDataURL(file);
-        };
-
-        function triggerAvatarUpload() { myAvatarInput.click(); }
+        // Όταν ο χρήστης αφήνει το ποντίκι, κάνει ένα test ping για να ακούσει την ένταση
+        volumeControl.addEventListener("change", () => {
+            if (notificationSound.volume > 0) {
+                notificationSound.play().catch(e => {});
+            }
+        });
 
         async function updatePresence() {
             if (!isLoggedIn) return;
             try {
-                let res = await fetch('/api/presence', {
+                await fetch('/api/presence', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user: currentName, avatar: currentAvatar, token: deviceToken })
+                    body: JSON.stringify({ user: currentName })
                 });
-                if (res.status === 403) handleBannedUser();
             } catch(e) {}
         }
 
@@ -282,54 +230,18 @@
             if (!isLoggedIn) return;
             try {
                 const res = await fetch('/api/presence');
-                const usersData = await res.json(); 
+                const users = await res.json();
                 const box = document.getElementById("users-box");
                 box.innerHTML = "";
-                
-                usersData.forEach(u => {
-                    let name = u.user;
-                    let av = u.avatar || "";
-                    if(name !== currentName && av) { globalUsersAvatars[name] = av; }
-                    
-                    let finalAvatar = name === currentName ? currentAvatar : (av || globalUsersAvatars[name] || "");
-                    let imgTag = finalAvatar ? `<img src="${finalAvatar}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
-
-                    if (name !== currentName) {
-                        const badge = unreadFromUsers.has(name) ? ` <span class="unread-badge">Νέο!</span>` : '';
-                        let banBtnHtml = isAdmin ? `<button class="ban-btn" onclick="executeBan(event, '${name}')">🚫</button>` : '';
-                        box.innerHTML += `<div class="user-row" onclick="startPrivateChat('${name}')">${imgTag} <span>${name}</span>${badge}${banBtnHtml}</div>`;
+                users.forEach(u => {
+                    if (u !== currentName) {
+                        const badge = unreadFromUsers.has(u) ? ` <span class="unread-badge">Νέο!</span>` : '';
+                        box.innerHTML += `<div class="user-row" onclick="startPrivateChat('${u}')">👤 ${u}${badge}</div>`;
                     } else {
-                        let myImg = currentAvatar ? `<img src="${currentAvatar}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">📷</div>`;
-                        box.innerHTML += `<div class="my-row" onclick="triggerAvatarUpload()">${myImg} <span>${name} (Εσύ)</span></div>`;
+                        box.innerHTML += `<div style="margin:5px 0; padding:6px; text-align:center; color:#888;">👤 ${u} (Εσύ)</div>`;
                     }
                 });
             } catch(e) {}
-        }
-
-        async function executeBan(event, username) {
-            event.stopPropagation();
-            if (!confirm(`Θέλεις σίγουρα να αποκλείσεις (BAN) οριστικά τον χρήστη ${username};`)) return;
-
-            try {
-                let res = await fetch('/api/ban', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetUser: username, adminName: currentName, adminToken: deviceToken })
-                });
-                let data = await res.json();
-                if (data.success) {
-                    alert(`Ο χρήστης ${username} αποκλείστηκε επιτυχώς!`);
-                    fetchPresence();
-                } else {
-                    alert("Δεν έχεις δικαίωμα ή το Ban απέτυχε.");
-                }
-            } catch(e) { alert("Σφάλμα κατά το Ban"); }
-        }
-
-        function handleBannedUser() {
-            localStorage.clear();
-            alert("Έχεις αποκλειστεί οριστικά (BAN) από αυτό το chat!");
-            location.reload();
         }
 
         function startPrivateChat(targetUser) {
@@ -355,40 +267,21 @@
 
         if (isLoggedIn) {
             updatePresence();
-            setInterval(updatePresence, 4000);
+            setInterval(updatePresence, 5000);
             fetchPresence();
             setInterval(fetchPresence, 4000);
             document.getElementById("chat-header").style.display = "flex";
         }
 
         document.getElementById("enter-btn").onclick = async () => {
-            let rawInput = document.getElementById("username").value.trim();
-            if (!rawInput) return alert("Πρέπει να βάλεις όνομα!");
-
-            try {
-                let res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ loginString: rawInput, token: deviceToken })
-                });
-                let data = await res.json();
-                
-                if (!data.success) {
-                    if (data.error === 'banned') handleBannedUser();
-                    document.getElementById("username").value = "";
-                    document.getElementById("username").placeholder = "Το όνομά σου...";
-                    return;
-                }
-
-                localStorage.setItem("chatUser", data.username);
-                localStorage.setItem("chatIsAdmin", data.isAdmin ? "true" : "false");
-
-                const welcomeDiv = document.getElementById("welcome-overlay");
-                welcomeDiv.innerHTML = data.isAdmin ? `Καλώς ορισες Αρχηγέ <strong>${data.username}</strong>! 👑<br>Φόρτωση...` : `Καλώς ήρθες, <strong>${data.username}</strong>! 🎉<br>Φόρτωση...`;
-                welcomeDiv.style.display = "flex";
-                
-                setTimeout(() => location.reload(), 1200);
-            } catch(e) { alert("Σφάλμα σύνδεσης"); }
+            let newName = document.getElementById("username").value.trim();
+            if (!newName) return alert("Πρέπει να βάλεις όνομα!");
+            const welcomeDiv = document.getElementById("welcome-overlay");
+            welcomeDiv.innerHTML = `Καλώς ήρθες, <strong>${newName}</strong>! 🎉<br>Φόρτωση...`;
+            welcomeDiv.style.display = "flex";
+            
+            localStorage.setItem("chatUser", newName);
+            setTimeout(() => location.reload(), 1200);
         };
 
         if (isLoggedIn) {
@@ -397,26 +290,22 @@
             document.getElementById("chat-cover").style.display = "none";
         } else {
             currentName = "Guest_" + Math.floor(Math.random() * 1000);
-            document.getElementById("username").placeholder = "Το όνομά σου...";
         }
 
         async function sendMessage(text, imageUrl = null) {
             if (!isLoggedIn || (!text && !imageUrl)) return;
             try {
-                let res = await fetch('/api/messages', {
+                await fetch('/api/messages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         user: currentName, 
-                        avatar: currentAvatar, 
                         text: text || "", 
                         image: imageUrl,
-                        to: activePrivateTarget,
-                        token: deviceToken
+                        to: activePrivateTarget 
                     })
                 });
-                if (res.status === 403) handleBannedUser();
-                // Δεν χρειάζεται fetchMessages() εδώ, το Socket.io θα το φέρει αυτόματα
+                fetchMessages();
             } catch(e) {}
         }
 
@@ -434,44 +323,79 @@
         async function fetchMessages() {
             if (!isLoggedIn) return;
             try {
-                const res = await fetch(`/api/messages?user=${encodeURIComponent(currentName)}&token=${deviceToken}`);
-                if (res.status === 403) handleBannedUser();
-                
+                const res = await fetch(`/api/messages?user=${encodeURIComponent(currentName)}`);
                 const messages = await res.json();
+                
                 let htmlContent = "";
+                let hasIncomingNewPrivate = false;
+                let shouldPlaySound = false;
 
                 messages.forEach(m => {
-                    knownMessageIds.add(m.id);
-                    if (m.avatar && m.user !== currentName) globalUsersAvatars[m.user] = m.avatar;
+                    const isOwn = m.user === currentName;
+                    const isNew = !knownMessageIds.has(m.id);
+
+                    if (isNew) {
+                        knownMessageIds.add(m.id);
+
+                        if (!isOwn && !initialLoad) {
+                            if (!m.to && activePrivateTarget === null) {
+                                shouldPlaySound = true;
+                            } else if (m.to === currentName) {
+                                shouldPlaySound = true;
+                            }
+                        }
+
+                        if (m.to === currentName && m.user !== activePrivateTarget) {
+                            if (!unreadFromUsers.has(m.user)) {
+                                unreadFromUsers.add(m.user);
+                                hasIncomingNewPrivate = true;
+                            }
+                        }
+                    }
                 });
 
+                if (hasIncomingNewPrivate) {
+                    fetchPresence(); 
+                }
+
                 const visibleMessages = messages.filter(m => {
-                    if (activePrivateTarget === null) return !m.to; 
-                    else return m.to === activePrivateTarget || (m.user === activePrivateTarget && m.to === currentName);
+                    if (activePrivateTarget === null) {
+                        return !m.to; 
+                    } else {
+                        return m.to === activePrivateTarget || (m.user === activePrivateTarget && m.to === currentName);
+                    }
                 });
 
                 visibleMessages.forEach(data => {
                     const isOwn = data.user === currentName;
                     const isPrivate = !!data.to;
-                    let userAv = isOwn ? currentAvatar : (data.avatar || globalUsersAvatars[data.user] || "");
-                    let msgAvatarTag = userAv ? `<img src="${userAv}" class="avatar">` : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:14px;background:#333;">👤</div>`;
 
                     htmlContent += `<div class="message ${isOwn ? 'own' : ''} ${isPrivate ? 'private-msg' : ''}">`;
-                    htmlContent += msgAvatarTag;
-                    htmlContent += `<div class="message-content">`;
                     htmlContent += `<strong>${data.user}${isPrivate ? ' [Πριβέ]' : ''}:</strong> `;
-                    if (data.text) htmlContent += `<span>${data.text}</span>`;
-                    if (data.image) htmlContent += `<img src="${data.image}" style="max-width:280px; border-radius:8px; margin-top:6px;">`;
-                    htmlContent += `</div></div>`;
+                    if (data.text) htmlContent += data.text;
+                    if (data.image) htmlContent += `<br><img src="${data.image}" style="max-width:280px; border-radius:8px; margin-top:6px;">`;
+                    htmlContent += `</div>`;
                 });
 
+                const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight <= 30;
                 chatBox.innerHTML = htmlContent;
-                chatBox.scrollTop = chatBox.scrollHeight;
+
+                if (initialLoad || isAtBottom) {
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+
+                if (shouldPlaySound) {
+                    notificationSound.play().catch(e => console.log("Sound interaction block"));
+                }
+                
                 initialLoad = false;
             } catch(e) {}
         }
 
-        if (isLoggedIn) fetchMessages();
+        if (isLoggedIn) {
+            fetchMessages();
+            setInterval(fetchMessages, 2000);
+        }
 
         document.getElementById("exit-btn").onclick = async () => {
             try {
@@ -485,18 +409,6 @@
             location.reload();
         };
 
-        const volumeControl = document.getElementById("volume-control");
-        const volumeIcon = document.getElementById("volume-icon");
-        volumeControl.addEventListener("input", (e) => {
-            const val = parseFloat(e.target.value);
-            notificationSound.volume = val;
-            if (val === 0) volumeIcon.textContent = "🔇";
-            else if (val < 0.4) volumeIcon.textContent = "🔈";
-            else volumeIcon.textContent = "🔊";
-            notificationSound.currentTime = 0;
-            notificationSound.play().catch(err => {});
-        });
-
         const emojis = ["😀","😂","😍","🥰","😎","🔥","❤️","👍","👎","🎉","🚀","💯","🙌","😢","😱"];
         const picker = document.getElementById("emoji-picker");
         emojis.forEach(emo => {
@@ -509,6 +421,7 @@
             };
             picker.appendChild(span);
         });
+
         document.getElementById("emoji-btn").onclick = (e) => {
             e.stopPropagation();
             picker.style.display = picker.style.display === "flex" ? "none" : "flex";
@@ -519,26 +432,23 @@
         document.getElementById("image-upload").onchange = (e) => {
             const file = e.target.files[0];
             if (!file || !isLoggedIn) return;
-
-            const statusDiv = document.getElementById("upload-status");
-            statusDiv.style.display = "block";
-            document.getElementById("image-btn").disabled = true;
-
             const reader = new FileReader();
-            reader.onload = async (ev) => {
-                await sendMessage("", ev.target.result);
-                statusDiv.style.display = "none";
-                document.getElementById("image-btn").disabled = false;
-            };
+            reader.onload = (ev) => sendMessage("", ev.target.result);
             reader.readAsDataURL(file);
         };
 
         let isDark = true;
         document.getElementById("toggle-theme").onclick = () => {
             isDark = !isDark;
-            document.getElementById("toggle-theme").textContent = isDark ? "🌙" : "☀️";
-            document.body.style.backgroundColor = isDark ? "#000" : "#222233";
-            document.getElementById("chat-wrapper").style.backgroundColor = isDark ? "rgba(0,0,0,0.95)" : "rgba(40,40,60,0.95)";
+            const btn = document.getElementById("toggle-theme");
+            btn.textContent = isDark ? "🌙" : "☀️";
+            if (isDark) {
+                document.body.style.backgroundColor = "#000";
+                document.getElementById("chat-wrapper").style.backgroundColor = "rgba(0,0,0,0.95)";
+            } else {
+                document.body.style.backgroundColor = "#222233";
+                document.getElementById("chat-wrapper").style.backgroundColor = "rgba(40,40,60,0.95)";
+            }
         };
     </script>
 </body>
