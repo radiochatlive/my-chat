@@ -167,11 +167,10 @@
 
         const notificationSound = new Audio('ping.mp3');
         let initialLoad = true;
-        let lastKnownMsgId = null;
         let unreadFromUsers = new Set(); 
         
-        // Έξυπνη μνήμη: Αποθηκεύει τα IDs των μηνυμάτων που έχουμε ήδη εμφανίσει/διαβάσει στην οθόνη
-        let readMessagesIds = new Set();
+        // Κρατάμε τα IDs των μηνυμάτων που έχουμε ήδη επεξεργαστεί για να μην ξαναχτυπάει ο ήχος
+        let knownMessageIds = new Set();
 
         async function updatePresence() {
             if (!isLoggedIn) return;
@@ -285,19 +284,30 @@
                 const messages = await res.json();
                 
                 let htmlContent = "";
-                let newestMsgId = null;
-                let lastMessageUser = null;
                 let hasIncomingNewPrivate = false;
+                let shouldPlaySound = false;
 
-                // 1. Έλεγχος για πραγματικά ΝΕΑ πριβέ μηνύματα
+                // 1. Επεξεργασία ΟΛΩΝ των μηνυμάτων για ήχο και ταμπέλες
                 messages.forEach(m => {
-                    // Αν το μήνυμα είναι για μένα, από άλλον, και ΔΕΝ το έχουμε ξαναδεί/διαβάσει
-                    if (m.to === currentName && !readMessagesIds.has(m.id)) {
-                        if (m.user === activePrivateTarget) {
-                            // Αν έχουμε ήδη ανοιχτό το πριβέ με αυτόν, το μαρκάρουμε αμέσως διαβασμένο
-                            readMessagesIds.add(m.id);
-                        } else {
-                            // Αν είμαστε αλλού, ανάβει η ειδοποίηση
+                    const isOwn = m.user === currentName;
+                    const isNew = !knownMessageIds.has(m.id);
+
+                    if (isNew) {
+                        knownMessageIds.add(m.id); // Το μαθαίνει το σύστημα
+
+                        // Αν ΔΕΝ είναι δικό μας μήνυμα, δες αν πρέπει να παίξει ήχος
+                        if (!isOwn && !initialLoad) {
+                            if (!m.to && activePrivateTarget === null) {
+                                // Ήρθε νέο μήνυμα στο Γενικό ΚΑΙ είμαστε στο Γενικό
+                                shouldPlaySound = true;
+                            } else if (m.to === currentName) {
+                                // Ήρθε νέο Πριβέ για εμάς (άσχετα με το πού βρισκόμαστε)
+                                shouldPlaySound = true;
+                            }
+                        }
+
+                        // Αν είναι πριβέ για μένα, από χρήστη που ΔΕΝ έχω ανοιχτό αυτή τη στιγμή, βάλε ταμπέλα
+                        if (m.to === currentName && m.user !== activePrivateTarget) {
                             if (!unreadFromUsers.has(m.user)) {
                                 unreadFromUsers.add(m.user);
                                 hasIncomingNewPrivate = true;
@@ -322,37 +332,27 @@
                 visibleMessages.forEach(data => {
                     const isOwn = data.user === currentName;
                     const isPrivate = !!data.to;
-                    
-                    // Κάθε μήνυμα που εμφανίζεται στην οθόνη μας, θεωρείται πλέον "διαβασμένο"
-                    readMessagesIds.add(data.id);
 
                     htmlContent += `<div class="message ${isOwn ? 'own' : ''} ${isPrivate ? 'private-msg' : ''}">`;
                     htmlContent += `<strong>${data.user}${isPrivate ? ' [Πριβέ]' : ''}:</strong> `;
                     if (data.text) htmlContent += data.text;
                     if (data.image) htmlContent += `<br><img src="${data.image}" style="max-width:280px; border-radius:8px; margin-top:6px;">`;
                     htmlContent += `</div>`;
-                    
-                    newestMsgId = data.id;
-                    lastMessageUser = data.user;
                 });
 
                 const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight <= 30;
                 chatBox.innerHTML = htmlContent;
 
-                if (initialLoad || isAtBottom || newestMsgId !== lastKnownMsgId) {
+                if (initialLoad || isAtBottom) {
                     chatBox.scrollTop = chatBox.scrollHeight;
                 }
 
-                if (!initialLoad && newestMsgId !== lastKnownMsgId && lastMessageUser !== currentName) {
-                    notificationSound.play().catch(e => console.log("Sound error"));
+                // Παίζει ο ήχος ΜΟΝΟ αν τηρούνται τα σωστά φίλτρα
+                if (shouldPlaySound) {
+                    notificationSound.play().catch(e => console.log("Sound interaction block"));
                 }
                 
-                if(newestMsgId) {
-                    lastKnownMsgId = newestMsgId;
-                }
                 initialLoad = false;
-                
-                // Πάντα ανανεώνουμε τη λίστα παρουσίας για να σβήσει το badge σωστά
                 fetchPresence();
             } catch(e) {}
         }
