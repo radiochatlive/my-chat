@@ -37,36 +37,22 @@ app.get('/', (req, res) => {
 });
 
 // ΔΙΟΡΘΩΜΕΝΟ ENDPOINT ΓΙΑ ΤΟ RESET
-app.post('/api/login', (req, res) => {
-    const { loginString, token } = req.body;
-    let username = loginString.trim();
-
-    // Αν ο χρήστης υπάρχει στο onlineUsers, διέγραψέ τον ΠΡΙΝ το check
-    // ώστε να μην μπορεί να κολλήσει ποτέ το όνομα
-    if (onlineUsers[username]) {
-        delete onlineUsers[username];
+app.post('/api/clear-all', (req, res) => {
+    const { adminName } = req.body;
+    if (adminName === "sakis") {
+        messages = [];
+        
+        // Διαγράφουμε όλους τους χρήστες από τη μνήμη
+        onlineUsers = {};
+        
+        // Αυξάνουμε το version για να καταλάβουν οι άλλοι ότι πρέπει να κάνουν reload
+        resetVersion++;
+        
+        console.log("Το Reset εκτελέστηκε, όλοι οι χρήστες διαγράφηκαν.");
+        res.json({ success: true });
+    } else {
+        res.status(403).json({ success: false, error: "Μη εξουσιοδοτημένη ενέργεια" });
     }
-
-    if (isBanned(req, token)) {
-        return res.json({ success: false, error: 'banned' });
-    }
-
-    let isAdmin = false;
-    if (forbiddenNames.includes(username)) {
-        return res.json({ success: false, error: 'Απαγορευμένο όνομα' });
-    }
-
-    if (username.includes(':')) {
-        const parts = username.split(':');
-        const namePart = parts[0].trim();
-        const passPart = parts[1].trim();
-        if (namePart.toLowerCase() === 'sakis' && passPart === ADMIN_PASSWORD) {
-            username = "sakis";
-            isAdmin = true;
-        }
-    }
-
-    res.json({ success: true, username, isAdmin });
 });
 
 // ΝΕΟ ENDPOINT για τον έλεγχο έκδοσης από τους client
