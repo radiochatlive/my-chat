@@ -137,7 +137,7 @@
         #image-upload-btn.loading::after { content: " Ανεβαίνει..."; font-size: 13px; animation: pulse 1.8s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
         /* Reset button style */
-        .reset-btn { background: #ff3333; color: white; border: none; border-radius: 8px; padding: 0 15px; font-weight: bold; cursor: pointer; height: 40px; }
+        .reset-btn { background: #ff3333; color: white; border: none; border-radius: 8px; padding: 0 15px; font-weight: bold; cursor: pointer; height: 40px; display: none; }
         .reset-btn:hover { background: #ff0000; }
     </style>
     <style>
@@ -182,12 +182,12 @@
                 <span id="volume-icon">🔊</span>
                 <input type="range" id="volume-control" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
             </div>
-            <button id="reset-btn" class="reset-btn" style="display: none;">🗑️ RESET</button>
+            <button id="reset-btn" class="reset-btn">🗑️ RESET</button>
             <button id="exit-btn">🚪 Έξοδος</button>
         </div>
     </div>
     <div id="emoji-picker"></div>
-	<script>
+    <script>
         let deviceToken = localStorage.getItem("chatDeviceToken");
         if (!deviceToken) {
             deviceToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -204,6 +204,12 @@
         let unreadFromUsers = new Set();
         let knownMessageIds = new Set();
         let globalUsersAvatars = {};
+        
+        // Εμφάνιση Reset κουμπιού ΜΟΝΟ για τον Sakis
+        if (currentName === "sakis") {
+            document.getElementById("reset-btn").style.display = "block";
+        }
+
         const myAvatarInput = document.getElementById("my-avatar-input");
         myAvatarInput.onchange = (e) => {
             const file = e.target.files[0];
@@ -305,15 +311,15 @@
             fetchMessages();
         };
         
-        // Λογική RESET
+        // ΔΙΟΡΘΩΜΕΝΗ ΛΟΓΙΚΗ RESET
         document.getElementById("reset-btn").onclick = async () => {
-            if (!isAdmin) return alert("Μόνο ο admin μπορεί να κάνει reset!");
-            if (!confirm("ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα μηνύματα. Συνέχεια;")) return;
+            if (currentName !== "sakis") return alert("Μόνο ο Sakis έχει πρόσβαση!");
+            if (!confirm("ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα μηνύματα και οι χρήστες. Συνέχεια;")) return;
             try {
-                await fetch('/api/reset', {
+                await fetch('/api/clear-all', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ admin: currentName, token: deviceToken })
+                    body: JSON.stringify({ adminName: currentName })
                 });
                 location.reload();
             } catch(e) { alert("Σφάλμα στο reset"); }
