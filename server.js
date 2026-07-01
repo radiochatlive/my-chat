@@ -39,12 +39,9 @@ app.get('/', (req, res) => {
 app.post('/api/clear-all', (req, res) => {
     const { adminName } = req.body;
     if (adminName === "sakis") {
-        // Διαγραφή όλων εκτός από τον Sakis
-        for (let user in onlineUsers) {
-            if (user !== "sakis") {
-                delete onlineUsers[user];
-            }
-        }
+        // Διαγραφή όλων των μηνυμάτων και χρηστών
+        messages = [];
+        onlineUsers = {};
         res.json({ success: true });
     } else {
         res.status(403).json({ success: false, error: "Μη εξουσιοδοτημένη ενέργεια" });
