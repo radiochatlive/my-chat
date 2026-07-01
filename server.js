@@ -12,7 +12,6 @@ let messages = [];
 let onlineUsers = {}; 
 let bannedIPs = new Set();
 let bannedTokens = new Set();
-let resetVersion = 0; // Μεταβλητή για την έκδοση reset
 
 // Λίστα απαγορευμένων ονομάτων
 const forbiddenNames = ["Admin", "Owner", "Boss"]; 
@@ -36,29 +35,17 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ΔΙΟΡΘΩΜΕΝΟ ENDPOINT ΓΙΑ ΤΟ RESET
+// ΝΕΟ ENDPOINT ΓΙΑ ΤΟ RESET (Μόνο για τον Sakis)
 app.post('/api/clear-all', (req, res) => {
     const { adminName } = req.body;
     if (adminName === "sakis") {
+        // Διαγραφή όλων των μηνυμάτων και χρηστών
         messages = [];
-        
-        // Κρατάμε τα δεδομένα του Sakis προσωρινά
-        let sakisData = onlineUsers["sakis"]; 
-        // Αδειάζουμε το object όλων των χρηστών
-        onlineUsers = {}; 
-        // Επαναφέρουμε μόνο τον Sakis
-        if (sakisData) onlineUsers["sakis"] = sakisData;
-        
-        resetVersion++; 
+        onlineUsers = {};
         res.json({ success: true });
     } else {
         res.status(403).json({ success: false, error: "Μη εξουσιοδοτημένη ενέργεια" });
     }
-});
-
-// ΝΕΟ ENDPOINT για τον έλεγχο έκδοσης από τους client
-app.get('/api/reset-status', (req, res) => {
-    res.json({ version: resetVersion });
 });
 
 app.post('/api/login', (req, res) => {
