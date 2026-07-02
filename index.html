@@ -136,6 +136,7 @@
         #image-upload-btn.loading { opacity: 0.75; background: #008800; pointer-events: none; }
         #image-upload-btn.loading::after { content: " Ανεβαίνει..."; font-size: 13px; animation: pulse 1.8s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+        /* Reset button style */
         .reset-btn { background: #ff3333; color: white; border: none; border-radius: 8px; padding: 0 15px; font-weight: bold; cursor: pointer; height: 40px; display: none; }
         .reset-btn:hover { background: #ff0000; }
     </style>
@@ -204,8 +205,8 @@
         let knownMessageIds = new Set();
         let globalUsersAvatars = {};
         
-        // Ελέγχουμε αν το όνομα είναι "sakis" (μετατροπή σε μικρά για σιγουριά)
-        if (currentName && currentName.toLowerCase() === "sakis") {
+        // Εμφάνιση Reset κουμπιού ΜΟΝΟ για τον Sakis
+        if (currentName === "sakis") {
             document.getElementById("reset-btn").style.display = "block";
         }
 
@@ -310,15 +311,15 @@
             fetchMessages();
         };
         
-        // ΔΙΟΡΘΩΜΕΝΗ ΛΟΓΙΚΗ RESET ΓΙΑ ΣΥΝΔΕΣΗ ΜΕ MONGO
+        // ΔΙΟΡΘΩΜΕΝΗ ΛΟΓΙΚΗ RESET
         document.getElementById("reset-btn").onclick = async () => {
-            if (!currentName || currentName.toLowerCase() !== "sakis") return alert("Μόνο ο Sakis έχει πρόσβαση!");
-            if (!confirm("ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα μηνύματα από τη βάση δεδομένων. Συνέχεια;")) return;
+            if (currentName !== "sakis") return alert("Μόνο ο Sakis έχει πρόσβαση!");
+            if (!confirm("ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα μηνύματα και οι χρήστες. Συνέχεια;")) return;
             try {
                 await fetch('/api/clear-all', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ adminName: "sakis" }) // Στέλνουμε πάντα μικρά για να ταιριάζει με τον server
+                    body: JSON.stringify({ adminName: currentName })
                 });
                 location.reload();
             } catch(e) { alert("Σφάλμα στο reset"); }
@@ -350,7 +351,7 @@
                 localStorage.setItem("chatUser", data.username);
                 localStorage.setItem("chatIsAdmin", data.isAdmin ? "true" : "false");
                 const welcomeDiv = document.getElementById("welcome-overlay");
-                welcomeDiv.innerHTML = data.isAdmin ? `👑 Καλώς όρισες Αρχηγέ <strong>${data.username}</strong>!<br>Φόρτωση...` : `🎉 Καλώς ήρθες, <strong>${data.username}</strong>!<br>Φόρτωση...`;
+                welcomeDiv.innerHTML = data.isAdmin ? `Καλώς ορισες Αρχηγέ <strong>${data.username}</strong>! 👑<br>Φόρτωση...` : `Καλώς ήρθες, <strong>${data.username}</strong>! 🎉<br>Φόρτωση...`;
                 welcomeDiv.style.display = "flex";
                 
                 setTimeout(() => location.reload(), 1200);
