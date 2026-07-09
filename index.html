@@ -42,7 +42,7 @@
         }
         
         #login-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(3px); }
-        .login-box { background: var(--sidebar); padding: 30px; border-radius: 12px; text-align: center; width: 300px; max-width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .login-box { background: var(--sidebar); padding: 30px; border-radius: 12px; text-align: center; width: 320px; max-width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         
         #chat-container { display: none; width: 100%; height: 100%; }
         #main-chat { flex: 1; display: flex; flex-direction: column; padding: 20px; position: relative; }
@@ -55,19 +55,31 @@
         #messages::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #5a9fe2, #ab69c6); }
         #messages { scrollbar-width: thin; scrollbar-color: var(--accent) rgba(255, 255, 255, 0.05); }
         
-       .message { 
-    max-width: 70%; 
-    padding: 10px 14px; 
-    border-radius: 18px; 
-    display: flex; 
-    gap: 10px; 
-    align-items: flex-start; 
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    word-break: break-word;
-}
+        /* Διορθώθηκε το σπάσιμο των μεγάλων κειμένων */
+        .message { 
+            max-width: 70%; 
+            padding: 10px 14px; 
+            border-radius: 18px; 
+            display: flex; 
+            gap: 10px; 
+            align-items: flex-start; 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
         .message.own { align-self: flex-end; background: var(--accent); flex-direction: row-reverse; }
         .message.other { align-self: flex-start; background: #333; }
+        
+        /* Διορθώθηκε το εσωτερικό div του μηνύματος */
+        .message > div {
+            flex: 1;
+            min-width: 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            max-width: 100%;
+        }
+
         .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; cursor: pointer; }
         
         #sidebar { 
@@ -308,7 +320,7 @@
         #radio-close-btn {
             position: absolute;
             bottom: 15px;
-            left: 15px;
+            right: 15px;
             background: #e74c3c;
             color: white;
             border: none;
@@ -375,6 +387,8 @@
         <div class="login-box">
             <h2>Είσοδος</h2>
             <input type="text" id="username" placeholder="Όνομα" style="width:100%; margin:10px 0; padding:10px;">
+            <!-- Νέο πεδίο για κωδικό χρήστη -->
+            <input type="password" id="user-pass" placeholder="Κωδικός (για κατοχύρωση ονόματος)" style="width:100%; margin:0 0 10px 0; padding:10px;">
             <input type="password" id="admin-pass" placeholder="Κωδικός Admin (προαιρετικό)" style="width:100%; margin:0 0 10px 0; padding:10px;">
             <button onclick="enterChat()" style="width:100%;">Είσοδος</button>
         </div>
@@ -409,16 +423,16 @@
                 <div id="emoji-panel">
                     <div id="emoji-panel-header">
                         <strong>Διάλεξε emoji</strong>
-                        <button id="emoji-panel-close" onclick="toggleEmojiPanel()">✕</button>
+                        <button id="emoji-panel-close" onclick="toggleEmojiPanel()"></button>
                     </div>
                     <div id="emoji-categories">
                         <button class="emoji-cat-btn active" onclick="showEmojiCategory('faces')">😀</button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('hands')">👍</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('hands')"></button>
                         <button class="emoji-cat-btn" onclick="showEmojiCategory('hearts')">❤️</button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('animals')">🐶</button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('food')">🍕</button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('objects')">⚽</button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('symbols')">💯</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('animals')"></button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('food')"></button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('objects')"></button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('symbols')"></button>
                     </div>
                     <div id="emoji-grid"></div>
                 </div>
@@ -445,7 +459,7 @@
     
     <div id="banned-modal">
         <div class="banned-box">
-            <h2 style="margin-top:0;">🚫 Αποκλεισμένοι Χρήστες</h2>
+            <h2 style="margin-top:0;"> Αποκλεισμένοι Χρήστες</h2>
             <div id="banned-list"></div>
             <button onclick="closeBannedPanel()" style="width:100%; margin-top:15px;">Κλείσιμο</button>
         </div>
@@ -536,6 +550,16 @@
         let selectedPeriodDays = null;
         let usersToDelete = [];
 
+        // ===== ΣΥΝΑΡΤΗΣΗ ΚΡΥΠΤΟΓΡΑΦΗΣΗΣ ΚΩΔΙΚΟΥ =====
+        async function hashPassword(password) {
+            if (!password) return '';
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         // ===== RADIO MODAL =====
         window.toggleRadioModal = () => {
             const modal = document.getElementById('radio-modal');
@@ -608,13 +632,13 @@
         }
 
         const emojiCategories = {
-            faces: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','','😛','😜','🤪','😝','🤑','🤗','','🤫','🤔','','🤐','🤨','','😑','😶','🫥','😏','😒','🙄','😬','🤥','😌','😔','','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','🥶','🥴','😵','🤯','','🥳','🥸','','🤓','🧐','','🫤','😟','🙁','☹️','😮','😯','','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'],
-            hands: ['👋','🤚','️','✋','🖖','','🫲','🫳','','👌','🤌','','✌️','🤞','','🤟','🤘','','👈','👉','','🖕','👇','☝️','🫵','👍','','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','','🦿','🦵','','👂','🦻','','🧠','🫀','','🦷','🦴','','👁️','👅','','🫦'],
-            hearts: ['❤️','🧡','💛','💚','💙','💜','🖤','','🤎','💔','❤️‍🔥','❤️‍','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','','😍','🥰','😘','💋','💑','💏','👩‍❤️‍👨','‍❤️‍👩','‍❤️‍👨','💌','💐','🌹','','🌺','🌸','','🌼'],
-            animals: ['','🐱','🐭','','🐰','🦊','','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪰','🪲','🪳','🦟','🦗','🕷️','🕸️','','🐢','🐍','','🦖','🦕','','🦑','🦐','','🦀','🐡','','🐟','🐬','','🐋','🦈','','🐅','🐆','','🦍','🦧','','🦛','🦏','','🐫','🦒','','🦬','🐃','','🐄','🐎','','🐏','🐑','','🐐','🦌','','🐩','🦮','‍🦺','🐈','‍⬛','🪶','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','','🦝','🦨','','🦫','🦦','','🐁','🐀','️','🦔'],
-            food: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🫑','🌽','','🫒','🧄','','🥔','🍠','🥐','🥯','🍞','','🥨','🧀','','🍳','🧈','','🧇','🥓','','🍗','🍖','','🌭','🍔','','🍕','🫓','','🥙','🧆','','🌯','🫔','','🥘','🫕','','🍝','🍜','','🍛','🍣','','🥟','🦪','','🍙','🍚','','🍥','🥠','','🍢','🍡','','🍨','🍦','','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🥛','🍼','🫖','☕','🍵','','🥤','🧋','','🍺','🍻','','🍷','🥃','','🍹','🧉','','🧊','🥄','','🍽️','🥣','🥡','🥢','🧂'],
-            objects: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🪃','🥅','⛳','🪁','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','','🎿','⛷️','','🪂','🏋️','🤼','🤸','⛹️','🤺','🤾','🏌️','🏇','🧘','','🏊','🤽','','🧗','🚵','','🏆','🥇','','🥉','🏅','️','🏵️','🎗️','🎫','🎟️','','🤹','🎭','','🎨','🎬','','🎧','🎼','','🥁','🪘','','🎺','🪗','','🪕','🎻','','♟️','🎯','','🎮','🎰','','🚗','🚕','','🚌','🚎','️','🚓','🚑','','🚐','🛻','🚚','🚛','🚜','🛵','🏍️','🛺','🚲','🛴','🛹','🛼','🚨','🚔','🚍','🚘','🚖','✈️','🛫','🛬','🛩️','💺','🛰️','🚀','🛸','🚁','🛶','⛵','🚤','🛥️','🛳️','️','🚢','⚓','🪝','⛽','🚧','🚦','🚥','🗺️','🗿','🗽','','🏰','🏯','🏟️','🎡','🎢','','⛲','⛱️','️','🏝️','🏜️','🌋','⛰️','️','🗻','🏕️','⛺','🛖','🏠','🏡','🏘️','🏚️','🏗️','🏭','','🏬','🏣','','🏥','🏦','','🏪','🏫','','💒','🏛️','','🕌','🕍','','🕋','⛩️','️','🛣️','🗾','🎑','🏞️','','🌄','🌠','','🎆','🌇','','🏙️','🌃','','🌉','🌁','','📱','💻','⌨️','🖥️','🖨️','🖱️','🖲️','️','🗜️','💽','💾','💿','📀','','📷','📸','','🎥','📽️','️','📞','☎️','📟','📠','📺','📻','🎙️','️','🎛️','🧭','⏱️','⏲️','','🕰️','⌛','','📡','🔋','','💡','🔦','️','🪔','🧯','️','💸','💵','','💶','💷','🪙','💰','💳','💎','⚖️','🪜','🧰','','🔧','🔨','️','🛠️','️','🪚','🔩','️','🪤','🧱','⛓️','🧲','🔫','💣','🧨','🪓','🔪','🗡️','⚔️','🛡️','🚬','️','🪦','⚱️','🏺','🔮','📿','🧿','💈','⚗️','🔭','🔬','🕳️','🩹','🩺','💊','💉','🩸','🧬','🦠','🧫','🧪','🌡️','🧹','🪠','🧺','🧻','🚽','🚰','🚿','🛁','🛀','🧼','🪥','🪒','🧽','','🧴','🛎️','','🗝️','🚪','🪑','🛋️','🛏️','🛌','🧸','','🖼️','🪞','','🛍️','🛒','🎁','🎈','🎏','🎀','🪄','🪅','🎊','🎉','🎎','🏮','🎐','🧧','✉️','📩','📨','','💌','📥','','📦','🏷️','','📪','📫','','📭','📮','','📜','📃','','📑','🧾','','📈','📉','️','🗓️','','📅','🗑️','','🗃️','🗳️','🗄️','📋','','📂','🗂️','️','📰','📓','📔','📒','📕','','📘','📙','','📖','🔖','','🔗','📎','️','📐','📏','','📌','📍','️','🖊️','🖋️','✒️','🖌️','️','📝','✏️','','🔎','🔏','','🔒','🔓'],
-            symbols: ['💯','❤️','💔','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','️','🔯','🕎','️','☦️','🛐','','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','','🈹','🈲','️','🅱️','🆎','🆑','🅾️','','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','','🚯','🚳','','🔞','📵','','❗','❕','❓','❔','‼️','⁉️','','🔆','〽️','️','🚸','🔱','️','🔰','♻️','✅','🈯','💹','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','','🅿️','🛗','','🈂️','🛂','🛃','🛄','🛅','','🚺','🚼','','🚻','🚮','','📶','','🔣','ℹ️','','🔡','🔠','','🆗','🆙','','🆕','🆓','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','','🔢','#️⃣','*️⃣','⏏️','▶️','⏸️','⏯️','️','⏺️','⏭️','⏮️','⏩','','⏫','⏬','️','🔼','🔽','️','⬅️','⬆️','⬇️','↗️','↘️','↙️','↖️','↕️','↔️','↪️','↩️','⤴️','⤵️','🔀','🔁','','🔄','🔃','','🎶','➕','➖','➗','✖️','🟰','♾️','💲','💱','™️','©️','®️','👁️‍🗨️','🔚','','🔛','🔝','','〰️','➰','➿','✔️','☑️','','🔴','🟠','','🟢','🔵','','⚫','⚪','','🔺','🔻','','🔹','🔶','','🔳','🔲','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','🟫','🔈','🔇','🔉','🔊','🔔','🔕','','📢','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','','🀄','🕐','','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛']
+            faces: ['😀','😃','😄','😁','😆','😅','','😂','🙂','🙃','😉','😊','😇','🥰','','🤩','😘','😗','😚','😙','🥲','','','😜','🤪','😝','🤑','🤗','','🤫','🤔','','🤐','🤨','','😑','😶','🫥','😏','😒','🙄','😬','','😌','😔','','🤤','😴','😷','🤒','','🤢','🤮','','🥶','🥴','','🤯','','🥳','','','🤓','🧐','','','😟','🙁','☹️','😮','😯','','😳','','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','','😡','😠','','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'],
+            hands: ['👋','🤚','️','✋','🖖','','','🫳','','👌','','','✌️','🤞','','','🤘','','👈','','','🖕','👇','☝️','🫵','👍','','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✍️','💅','','💪','','🦿','','','👂','🦻','','','🫀','','🦷','','','👁️','👅','',''],
+            hearts: ['❤️','','💛','💚','💙','💜','🖤','','🤎','','❤️‍🔥','❤️‍','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','','😍','🥰','😘','💋','','💏','👩‍❤️‍👨','‍❤️‍👩','‍❤️‍','💌','💐','🌹','','🌺','🌸','','🌼'],
+            animals: ['','🐱','','','🐰','🦊','','','🐻‍❄️','','🐯','🦁','','🐷','🐽','','🐵','🙈','','🙊','🐒','','🐧','🐦','','🐣','🐥','','🦅','🦉','','🐺','🐗','','🦄','🐝','','🐛','🦋','','🐞','🐜','','🪲','🪳','','🦗','🕷️','🕸️','','🐢','🐍','','🦖','🦕','','🦑','🦐','','🦀','🐡','','🐟','🐬','','','🦈','','🐅','','','🦍','🦧','','','🦏','','🐫','','','🦬','🐃','','🐄','🐎','','🐏','🐑','','🐐','🦌','','🐩','🦮','‍🦺','','‍⬛','🪶','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','','','🦨','','🦫','','','🐁','🐀','️','🦔'],
+            food: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','','🌽','','🫒','','','🥔','🍠','🥐','🥯','🍞','','🥨','🧀','','🍳','🧈','','🧇','🥓','','🍗','🍖','','🌭','🍔','','🍕','🫓','','','🧆','','🌯','','','🥘','🫕','','','🍜','','🍛','','','🥟','🦪','','','🍚','','🍥','','','🍢','🍡','','🍨','🍦','','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🥛','🍼','🫖','☕','','','🥤','🧋','','','🍻','','🍷','','','🍹','🧉','','','🥄','','🍽️','','🥡','🥢',''],
+            objects: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🪃','🥅','⛳','🪁','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','','🎿','⛷️','','','🏋️','🤼','','⛹️','🤺','🤾','🏌️','🏇','🧘','','🏊','🤽','','🧗','🚵','','🏆','🥇','','🥉','🏅','️','🏵️','🎗️','🎫','🎟️','','','🎭','','🎨','','','🎧','🎼','','','🪘','','🎺','','','🪕','🎻','','♟️','🎯','','🎮','','','🚗','🚕','','🚌','🚎','️','🚓','','','🚐','🛻','','🚛','🚜','','🏍️','🛺','','🛴','🛹','','🚨','🚔','','🚘','🚖','️','🛫','🛬','️','💺','🛰️','','🛸','🚁','','⛵','🚤','️','🛳️','️','','⚓','🪝','','🚧','🚦','','🗺️','🗿','🗽','','🏰','🏯','🏟️','🎡','🎢','','⛲','⛱️','️','️','🏜️','🌋','⛰️','️','🗻','️','⛺','🛖','🏠','🏡','🏘️','🏚️','🏗️','','','🏬','🏣','','','🏦','','🏪','','','💒','🏛️','','','🕍','','🕋','️','️','🛣️','','🎑','🏞️','','','🌠','','🎆','','','🏙️','🌃','','🌉','🌁','','📱','💻','⌨️','🖥️','🖨️','🖱️','️','️','🗜️','💽','💾','💿','','','📷','📸','','','📽️','️','📞','☎️','📟','📠','📺','📻','🎙️','️','🎛️','🧭','⏱️','⏲️','','️','⌛','','📡','🔋','','💡','🔦','️','🪔','🧯','️','','💵','','💶','💷','','💰','💳','💎','⚖️','🪜','🧰','','🔧','🔨','️','️','️','🪚','','️','🪤','🧱','⛓️','🧲','🔫','💣','🧨','🪓','🔪','🗡️','⚔️','🛡️','🚬','️','🪦','⚱️','','🔮','📿','','💈','⚗️','','🔬','🕳️','','🩺','💊','💉','🩸','🧬','🦠','🧫','🧪','🌡️','🧹','🪠','','🧻','🚽','','🚿','🛁','','🧼','🪥','','🧽','','🧴','️','','🗝️','🚪','🪑','🛋️','🛏️','🛌','🧸','','️','🪞','','🛍️','🛒','🎁','🎈','🎏','🎀','🪄','🪅','🎊','🎉','🎎','🏮','🎐','🧧','✉️','📩','📨','','💌','📥','','','🏷️','','📪','','','📭','📮','','','📃','','📑','','','📈','📉','️','🗓️','','📅','️','','🗃️','🗳️','🗄️','📋','','','🗂️','️','📰','📓','📔','📒','📕','','📘','📙','','','🔖','','🔗','','️','📐','📏','','📌','📍','️','️','🖋️','✒️','🖌️','️','📝','✏️','','🔎','🔏','','🔒','🔓'],
+            symbols: ['💯','❤️','💔','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','️','☸️','️','🔯','🕎','️','☦️','','','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','','','🈲','️','🅱️','🆎','🆑','🅾️','','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','','','🚳','','🔞','','','❗','❕','❓','❔','‼️','⁉️','','','〽️','️','🚸','🔱','️','🔰','️','✅','🈯','','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','','','🅿️','🛗','','🈂️','🛂','🛃','🛄','🛅','','🚺','🚼','','🚻','🚮','','📶','','🔣','ℹ️','','🔡','🔠','','🆗','🆙','','🆕','🆓','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','','🔢','#️⃣','*️⃣','⏏️','▶️','⏸️','⏯️','️','⏺️','⏭️','️','⏩','','⏫','⏬','️','🔼','','️','⬅️','⬆️','⬇️','↗️','️','↙️','↖️','️','↔️','↪️','️','⤴️','⤵️','🔀','🔁','','🔄','🔃','','🎶','➕','','➗','✖️','🟰','♾️','💲','💱','™️','©️','®️','👁️‍🗨️','🔚','','🔛','🔝','','〰️','➰','➿','✔️','☑️','','🔴','🟠','','🟢','🔵','','⚫','⚪','','🔺','🔻','','🔹','🔶','','🔳','🔲','▪️','▫️','◾','','◼️','◻️','','🟧','🟨','','🟦','🟪','','⬜','🟫','','🔇','🔉','','🔔','🔕','','','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','','🀄','','','🕒','🕓','','🕕','🕖','','🕘','🕙','','🕛']
         };
 
         document.getElementById('toggle-sidebar').addEventListener('click', () => {
@@ -728,7 +752,7 @@
             const savedName = localStorage.getItem('chatUserName');
             if (savedName) {
                 document.getElementById('username').value = savedName;
-                await enterChat(true);
+                // Δεν κάνουμε αυτόματη είσοδο αν δεν υπάρχει κωδικός, πρέπει να τον ξαναβάλει
             }
         };
 
@@ -741,6 +765,7 @@
             document.getElementById('chat-container').style.display = 'none';
             document.getElementById('login-modal').style.display = 'flex';
             document.getElementById('username').value = '';
+            document.getElementById('user-pass').value = '';
             document.getElementById('admin-pass').value = '';
         }
 
@@ -793,8 +818,11 @@
 
         window.enterChat = async (autoLogin = false) => {
             const name = document.getElementById('username').value.trim();
-            const pass = document.getElementById('admin-pass').value.trim();
+            const userPass = document.getElementById('user-pass').value.trim();
+            const adminPass = document.getElementById('admin-pass').value.trim();
+            
             if (!name) return alert("Βάλε όνομα");
+            if (!userPass) return alert("Βάλε κωδικό για να κατοχυρώσεις το όνομά σου!");
             
             const bannedDoc = await getDoc(doc(db, "banned", name));
             if (bannedDoc.exists()) {
@@ -803,21 +831,24 @@
             
             const userDocRef = doc(db, "users", name);
             const userDoc = await getDoc(userDocRef);
-            const savedName = localStorage.getItem('chatUserName');
             
             if (userDoc.exists()) {
                 const existingUser = userDoc.data();
                 
-                if (savedName === name) {
-                    currentUser = { name, avatar: existingUser.avatar || '', isAdmin: existingUser.isAdmin || false };
-                } else {
-                    return alert("Αυτό το όνομα χρησιμοποιείται ήδη! Παρακαλούμε εισαγάγετε ένα διαφορετικό όνομα για να συνεχίσετε");
+                // Έλεγχος κωδικού για υπάρχοντα χρήστη
+                const hashedInputPass = await hashPassword(userPass);
+                if (existingUser.password && existingUser.password !== hashedInputPass) {
+                    return alert("❌ Λάθος κωδικός! Το όνομα αυτό είναι κατοχυρωμένο.");
                 }
+                
+                currentUser = { name, avatar: existingUser.avatar || '', isAdmin: existingUser.isAdmin || false };
             } else {
-                currentUser = { name, avatar: '', isAdmin: false };
+                // Νέος χρήστης - αποθήκευση κωδικού
+                const hashedPass = await hashPassword(userPass);
+                currentUser = { name, avatar: '', isAdmin: false, password: hashedPass };
             }
             
-            if (name.toLowerCase() === ADMIN_NAME.toLowerCase() && pass === ADMIN_PASS) {
+            if (name.toLowerCase() === ADMIN_NAME.toLowerCase() && adminPass === ADMIN_PASS) {
                 currentUser.isAdmin = true;
             }
             
@@ -825,7 +856,7 @@
             document.getElementById('login-modal').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
             
-            // ✅ Ξεκινάει το ραδιόφωνο στο background μόλις γίνει login
+            // Ξεκινάει το ραδιόφωνο στο background μόλις γίνει login
             startRadio();
             
             if (currentUser.isAdmin) {
@@ -834,12 +865,18 @@
                 document.getElementById('clear-users-btn').style.display = 'inline-block';
             }
             
-            await setDoc(userDocRef, { 
+            // Αποθήκευση/Ενημέρωση στη βάση
+            const saveData = { 
                 name: currentUser.name,
                 avatar: currentUser.avatar,
                 isAdmin: currentUser.isAdmin,
                 lastSeen: Timestamp.now() 
-            });
+            };
+            if (currentUser.password) {
+                saveData.password = currentUser.password;
+            }
+            
+            await setDoc(userDocRef, saveData);
             
             setInterval(() => {
                 if(currentUser) updateDoc(userDocRef, { lastSeen: Timestamp.now() }).catch(e => console.error(e));
@@ -859,7 +896,7 @@
         window.logout = async () => {
             if (!currentUser) return;
             
-            if (!confirm("Προσοχή: Αν αποσυνδεθείτε, χάνετε τη δέσμευση του ονόματός σας. Αν κάποιος άλλος το πάρει, δεν θα μπορείτε να εισέλθετε ξανά με αυτό,το όνομά. Επιβεβαιώνετε;")) {
+            if (!confirm("Θέλεις να αποσυνδεθείς; Θα εμφανίζεσαι ως offline αλλά θα διατηρήσεις το όνομα και τη φωτογραφία σου.")) {
                 return;
             }
             
@@ -868,11 +905,13 @@
             if (dmNotificationUnsub) dmNotificationUnsub();
             stopPublicMessagesListener();
             
-            // ✅ Σταματάει το ραδιόφωνο στο logout
+            // Σταματάει το ραδιόφωνο
             stopRadio();
             
             try {
-                await deleteDoc(doc(db, "users", currentUser.name));
+                // ΔΕΝ διαγράφουμε τον χρήστη, απλά τον βγάζουμε offline
+                await updateDoc(doc(db, "users", currentUser.name), { lastSeen: Timestamp.fromMillis(0) }).catch(e => console.error(e));
+                
                 localStorage.removeItem('chatUserName');
                 currentUser = null;
                 currentDM = null;
@@ -880,6 +919,7 @@
                 document.getElementById('chat-container').style.display = 'none';
                 document.getElementById('login-modal').style.display = 'flex';
                 document.getElementById('username').value = '';
+                document.getElementById('user-pass').value = '';
                 document.getElementById('admin-pass').value = '';
             } catch(e) { console.error(e); }
         };
@@ -1179,7 +1219,7 @@
             const fileSizeMB = file.size / (1024 * 1024);
             
             if (fileSizeMB > maxSizeMB) {
-                alert(`⚠️ Η φωτογραφία είναι πολύ μεγάλη!\n\nΜέγεθος: ${fileSizeMB.toFixed(2)}MB\nΜέγιστο επιτρεπτό: ${maxSizeMB}MB\n\nΠαρακαλώ επέλεξε μικρότερη φωτογραφία.`);
+                alert(`️ Η φωτογραφία είναι πολύ μεγάλη!\n\nΜέγεθος: ${fileSizeMB.toFixed(2)}MB\nΜέγιστο επιτρεπτό: ${maxSizeMB}MB\n\nΠαρακαλώ επέλεξε μικρότερη φωτογραφία.`);
                 e.target.value = '';
                 return;
             }
@@ -1237,7 +1277,7 @@
                     onlineCount++;
                     const isSelf = d.id === currentUser?.name;
                     const avatarUrl = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=4a90e2&color=fff`;
-                    const adminBadge = u.isAdmin ? '<span class="admin-badge">👑 Admin</span>' : '';
+                    const adminBadge = u.isAdmin ? '<span class="admin-badge"> Admin</span>' : '';
                     
                     const userDiv = document.createElement('div');
                     userDiv.className = 'user-item';
@@ -1291,7 +1331,7 @@
                 const notifEl = document.getElementById('dm-notification');
                 if (showNotification) {
                     pendingDMNotification = { chatId: notifChatId, partnerName: notifPartner };
-                    document.getElementById('dm-notification-text').textContent = `💬 Νέο μήνυμα από ${notifPartner}`;
+                    document.getElementById('dm-notification-text').textContent = ` Νέο μήνυμα από ${notifPartner}`;
                     notifEl.classList.add('active');
                 } else if (!pendingDMNotification) {
                     notifEl.classList.remove('active');
