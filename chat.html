@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <style>
+        :root { 
+            --bg: #1a1a1a; 
+            --sidebar: #252525; 
+            --text: #fff; 
+            --accent: #4a90e2; 
+            --dm: #9b59b6;
+            --sidebar-opacity: 0.8;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg); 
+            background-image: url('fonto.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text); 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            position: relative;
+        }
+        
+        #bg-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        #login-modal, #chat-container, #banned-modal, #clear-users-modal {
+            position: relative;
+            z-index: 1;
+        }
+        
+        #login-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(3px); }
+        .login-box { background: var(--sidebar); padding: 30px; border-radius: 12px; text-align: center; width: 320px; max-width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        
+        #chat-container { display: none; width: 100%; height: 100%; }
+        #main-chat { flex: 1; display: flex; flex-direction: column; padding: 20px; position: relative; }
+        
+        #messages { flex: 1; overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        
+        #messages::-webkit-scrollbar { width: 6px; }
+        #messages::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        #messages::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--accent), var(--dm)); border-radius: 10px; }
+        #messages::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #5a9fe2, #ab69c6); }
+        #messages { scrollbar-width: thin; scrollbar-color: var(--accent) rgba(255, 255, 255, 0.05); }
+        
+        .message { 
+            max-width: 70%; 
+            padding: 10px 14px; 
+            border-radius: 18px; 
+            display: flex; 
+            gap: 10px; 
+            align-items: flex-start; 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        .message.own { 
+    align-self: flex-end; 
+    background: rgba(255, 0, 255, 0.15); /* 30% ορατό - οζ διάφανο */
+    flex-direction: row-reverse; 
+}
+.message.other { 
+    align-self: flex-start; 
+    background: rgba(255, 255, 255, 0.15); /* 15% ορατό - λευκό διάφανο */
+}
+        
+        .message > div {
+            flex: 1;
+            min-width: 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            max-width: 100%;
+        }
+
+        .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; cursor: pointer; }
+        
+        #sidebar { 
+            width: 250px; 
+            background: transparent;
+            padding: 15px; 
+            border-left: 1px solid #444; 
+            overflow-y: auto; 
+            position: relative;
+        }
+        #sidebar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, var(--sidebar-opacity));
+            z-index: 0;
+            pointer-events: none;
+        }
+        #sidebar h3, #sidebar #user-list {
+            position: relative;
+            z-index: 1;
+        }
+        #sidebar::-webkit-scrollbar { width: 6px; }
+        #sidebar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        #sidebar::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--accent), var(--dm)); border-radius: 10px; }
+        #sidebar { scrollbar-width: thin; scrollbar-color: var(--accent) rgba(255, 255, 255, 0.05); }
+        
+        .user-item { display: flex; align-items: center; gap: 10px; padding: 8px; margin-bottom: 5px; border-radius: 8px; }
+        .user-item:hover { background: rgba(0, 0, 0, 0.4); }
+        
+        .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; position: relative; }
+        input[type="text"], input[type="password"], input[type="number"] { flex: 1; min-width: 150px; padding: 12px; border: none; border-radius: 8px; background: #333; color: white; outline: none; margin-bottom: 8px; }
+        button { padding: 10px 14px; border: none; border-radius: 8px; cursor: pointer; background: var(--accent); color: white; }
+        button:hover { opacity: 0.85; }
+        button.logout { background: #e74c3c; }
+        button.ban-btn { background: #e74c3c; padding: 4px 8px; font-size: 12px; margin-left: auto; }
+        button.banned-panel-btn { background: #9b59b6; }
+        button.clear-chat-btn { background: #e67e22; }
+        button.clear-users-btn { background: #16a085; }
+        button.dm-btn { background: var(--dm); padding: 4px 8px; font-size: 12px; }
+        button.back-btn { background: #7f8c8d; }
+        button.theme-btn { background: #f39c12; }
+        button.emoji-btn { background: #f1c40f; color: #000; font-size: 16px; }
+        button.volume-btn { background: #27ae60; }
+        button.radio-btn { background: #e91e63; }
+        
+        #toggle-sidebar { display: none; }
+        .admin-badge { background: #f1c40f; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; }
+        
+        #banned-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; }
+        .banned-box { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 400px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
+        .banned-box::-webkit-scrollbar { width: 6px; }
+        .banned-box::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        .banned-box::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--accent), var(--dm)); border-radius: 10px; }
+        .banned-box { scrollbar-width: thin; scrollbar-color: var(--accent) rgba(255, 255, 255, 0.05); }
+        
+        .banned-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 8px 0; background: #333; border-radius: 8px; }
+        .unban-btn { background: #27ae60; padding: 6px 12px; font-size: 12px; }
+        
+        #clear-users-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 250; justify-content: center; align-items: center; }
+        .clear-users-box { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 450px; max-width: 90%; max-height: 85vh; overflow-y: auto; }
+        .clear-users-box h2 { margin-top: 0; }
+        .period-btn { 
+            background: #333; 
+            padding: 12px 16px; 
+            margin: 5px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .period-btn:hover { background: #444; }
+        .period-btn.selected { 
+            background: var(--accent); 
+            border-color: #fff;
+        }
+        .period-buttons { display: flex; flex-wrap: wrap; justify-content: center; margin: 15px 0; }
+        .custom-input { display: none; margin: 10px 0; }
+        .custom-input.active { display: flex; align-items: center; gap: 8px; }
+        .custom-input input { width: 80px; flex: 0 0 auto; margin: 0; }
+        #clear-users-preview { 
+            background: #333; 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin: 15px 0;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 13px;
+        }
+        #clear-users-preview::-webkit-scrollbar { width: 4px; }
+        #clear-users-preview::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+        .preview-item { padding: 4px 8px; margin: 2px 0; background: #2a2a2a; border-radius: 4px; }
+        #clear-users-progress {
+            display: none;
+            background: #16a085;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        #clear-users-progress.active { display: block; }
+        
+        #dm-header { display: none; background: var(--dm); padding: 12px 15px; border-radius: 10px; margin-bottom: 10px; align-items: center; gap: 10px; }
+        #dm-header.active { display: flex; }
+        #dm-header strong { flex: 1; }
+        
+        #dm-notification { display: none; background: var(--dm); padding: 12px 15px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; align-items: center; gap: 10px; animation: pulse 1.5s infinite; }
+        #dm-notification.active { display: flex; }
+        #dm-notification:hover { opacity: 0.9; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        #theme-panel { display: none; background: #333; padding: 10px; border-radius: 8px; margin-bottom: 10px; align-items: center; gap: 10px; }
+        #theme-panel.active { display: flex; }
+        #theme-panel label { font-size: 14px; }
+        #theme-slider { flex: 1; cursor: pointer; }
+        
+        #volume-panel { display: none; background: #333; padding: 10px; border-radius: 8px; margin-bottom: 10px; align-items: center; gap: 10px; }
+        #volume-panel.active { display: flex; }
+        #volume-panel label { font-size: 14px; }
+        #volume-slider { flex: 1; cursor: pointer; }
+        #volume-mute-btn { background: #e74c3c; padding: 6px 10px; font-size: 12px; }
+        
+        #emoji-panel {
+            display: none;
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 10px;
+            width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            z-index: 80;
+        }
+        #emoji-panel.active { display: block; }
+        #emoji-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #444;
+        }
+        #emoji-panel-header strong { font-size: 14px; }
+        #emoji-panel-close { background: #e74c3c; padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+        #emoji-categories { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+        .emoji-cat-btn { background: #333; padding: 6px 10px; font-size: 14px; border-radius: 6px; flex: 1; min-width: 40px; }
+        .emoji-cat-btn.active { background: var(--accent); }
+        #emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
+        #emoji-grid::-webkit-scrollbar { width: 4px; }
+        #emoji-grid::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+        .emoji-item { background: transparent; border: none; font-size: 22px; padding: 4px; cursor: pointer; border-radius: 6px; transition: background 0.2s, transform 0.1s; }
+        .emoji-item:hover { background: #444; transform: scale(1.2); }
+        
+        #lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        #lightbox.active { display: flex; }
+        #lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        }
+        #lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #lightbox-close:hover { background: #c0392b; }
+        .message img[style*="max-width:200px"] {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .message img[style*="max-width:200px"]:hover {
+            transform: scale(1.05);
+        }
+        
+        #clear-progress {
+            display: none;
+            background: #e67e22;
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        #clear-progress.active { display: block; }
+        
+        #radio-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            transform: translateY(-100%);
+            z-index: 500;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: transparent;
+            pointer-events: none;
+        }
+        #radio-modal.active {
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        #radio-modal-content {
+            background: transparent;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        #radio-close-btn {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            padding: 0;
+        }
+        #radio-close-btn:hover {
+            background: #c0392b;
+            opacity: 1;
+        }
+        #radio-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            background: transparent;
+        }
+        
+        @media (max-width: 768px) {
+            #main-chat { padding: 10px; }
+            #sidebar { position: fixed; top: 0; right: -280px; width: 280px; height: 100vh; z-index: 50; transition: right 0.3s ease; box-shadow: -2px 0 10px rgba(0,0,0,0.5); }
+            #sidebar.open { right: 0; }
+            #toggle-sidebar { display: block; position: fixed; top: 10px; right: 10px; z-index: 60; background: var(--accent); padding: 10px 15px; border-radius: 8px; }
+            .message { max-width: 85%; }
+            .controls { gap: 5px; }
+            button { padding: 8px 10px; font-size: 14px; }
+            #emoji-grid { grid-template-columns: repeat(6, 1fr); }
+            #radio-close-btn {
+                bottom: 10px;
+                right: 10px;
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="bg-overlay"></div>
+    
+    <div id="radio-modal">
+        <div id="radio-modal-content">
+            <button id="radio-close-btn" onclick="closeRadioModal()">✕</button>
+            <iframe id="radio-iframe"></iframe>
+        </div>
+    </div>
+    
+    <div id="lightbox" onclick="closeLightbox()">
+        <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+        <img id="lightbox-img" src="" alt="Full size">
+    </div>
+    
+    <div id="login-modal">
+        <div class="login-box">
+            <h2>Είσοδος</h2>
+            <input type="text" id="username" placeholder="Όνομα" style="width:100%; margin:10px 0; padding:10px;">
+            <input type="password" id="user-pass" placeholder="Κωδικός (για κατοχύρωση ονόματος)" style="width:100%; margin:0 0 10px 0; padding:10px;">
+            <input type="password" id="admin-pass" placeholder="Κωδικός Admin (προαιρετικό)" style="width:100%; margin:0 0 10px 0; padding:10px;">
+            <button onclick="enterChat()" style="width:100%;">Είσοδος</button>
+        </div>
+    </div>
+    
+    <div id="chat-container">
+        <button id="toggle-sidebar">☰ Χρήστες</button>
+        <div id="main-chat">
+            <div id="dm-notification" onclick="openDMFromNotification()">
+                <span>💬</span>
+                <strong id="dm-notification-text">Νέο μήνυμα</strong>
+                <span>→</span>
+            </div>
+            <div id="dm-header">
+                <button class="back-btn" onclick="closeDM()">← Πίσω</button>
+                <strong id="dm-partner-name">Συνομιλία</strong>
+            </div>
+            <div id="clear-progress">🧹 Διαγραφή μηνυμάτων...</div>
+            <div id="messages"></div>
+            <div id="theme-panel">
+                <label>🎨 Σκουρότητα:</label>
+                <input type="range" id="theme-slider" min="0" max="100" value="60">
+                <span id="theme-value">60%</span>
+            </div>
+            <div id="volume-panel">
+                <label>🔊 Ένταση:</label>
+                <input type="range" id="volume-slider" min="0" max="100" value="50">
+                <span id="volume-value">50%</span>
+                <button id="volume-mute-btn" onclick="toggleMute()"> Mute</button>
+            </div>
+            <div class="controls">
+                <div id="emoji-panel">
+                    <div id="emoji-panel-header">
+                        <strong>Διάλεξε emoji</strong>
+                        <button id="emoji-panel-close" onclick="toggleEmojiPanel()">✕</button>
+                    </div>
+                    <div id="emoji-categories">
+                        <button class="emoji-cat-btn active" onclick="showEmojiCategory('faces')">😀</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('hands')">👍</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('hearts')">❤️</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('animals')">🐶</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('food')">🍕</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('objects')">⚽</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('symbols')">💯</button>
+                    </div>
+                    <div id="emoji-grid"></div>
+                </div>
+                <input type="text" id="msg-input" placeholder="Μήνυμα...">
+                <button class="emoji-btn" onclick="toggleEmojiPanel()">😊</button>
+                <input type="file" id="img-upload" style="display:none" accept="image/*">
+                <button id="upload-btn">🖼️</button>
+                <button onclick="sendMessage()">Αποστολή</button>
+                <button id="radio-btn" class="radio-btn" onclick="toggleRadioModal()">📻 Ράδιο Live</button>
+                <button id="banned-btn" class="banned-panel-btn" onclick="openBannedPanel()" style="display:none;">🚫 Banned</button>
+                <button id="clear-chat-btn" class="clear-chat-btn" onclick="clearPublicChat()" style="display:none;">️ Καθαρισμός</button>
+                <button id="clear-users-btn" class="clear-users-btn" onclick="openClearUsersModal()" style="display:none;"> Ονόματα</button>
+                <button class="theme-btn" onclick="toggleThemePanel()">🎨</button>
+                <button class="volume-btn" onclick="toggleVolumePanel()"> Ήχος</button>
+                <button class="logout" onclick="logout()">🚪 Αποχώρηση</button>
+            </div>
+        </div>
+        <div id="sidebar">
+            <div id="sidebar-overlay"></div>
+            <h3>Online (<span id="online-count">0</span>)</h3>
+            <div id="user-list"></div>
+        </div>
+    </div>
+    
+    <div id="banned-modal">
+        <div class="banned-box">
+            <h2 style="margin-top:0;">🚫 Αποκλεισμένοι Χρήστες</h2>
+            <div id="banned-list"></div>
+            <button onclick="closeBannedPanel()" style="width:100%; margin-top:15px;">Κλείσιμο</button>
+        </div>
+    </div>
+    
+    <div id="clear-users-modal">
+        <div class="clear-users-box">
+            <h2 style="margin-top:0;">🧹 Καθαρισμός Ονομάτων</h2>
+            <p style="color:#ccc; margin-bottom:15px;">Διάλεξε ποια ονόματα θα διαγραφούν (αυτά που δεν έχουν συνδεθεί για το επιλεγμένο διάστημα):</p>
+            
+            <div class="period-buttons">
+                <button class="period-btn" onclick="selectPeriod(7, this)">🗓️ 1 εβδομάδα</button>
+                <button class="period-btn" onclick="selectPeriod(30, this)">🗓️ 1 μήνα</button>
+                <button class="period-btn" onclick="selectPeriod(90, this)">️ 3 μήνες</button>
+                <button class="period-btn" onclick="selectPeriod('custom', this)">✏️ Άλλο...</button>
+            </div>
+            
+            <div id="custom-input-container" class="custom-input">
+                <span>Ημέρες:</span>
+                <input type="number" id="custom-days" min="1" max="365" placeholder="π.χ. 45" oninput="updatePreview()">
+            </div>
+            
+            <div id="clear-users-preview" style="display:none;">
+                <strong>Θα διαγραφούν:</strong>
+                <div id="preview-list"></div>
+            </div>
+            
+            <div id="clear-users-progress">🧹 Διαγραφή...</div>
+            
+            <div style="display:flex; gap:8px; margin-top:15px;">
+                <button onclick="executeClearUsers()" id="execute-clear-btn" style="flex:1; background:#16a085;" disabled>✅ Εκτέλεση</button>
+                <button onclick="closeClearUsersModal()" style="flex:1; background:#7f8c8d;">❌ Ακύρωση</button>
+            </div>
+        </div>
+    </div>
+    
+    <input type="file" id="avatar-upload" style="display:none" accept="image/*">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, setDoc, getDoc, deleteDoc, Timestamp, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAovCT-mT3UodWMbWNh1EsU36jy4DxyzJc",
+            authDomain: "chatradiolive.firebaseapp.com",
+            projectId: "chatradiolive",
+            storageBucket: "chatradiolive.firebasestorage.app",
+            messagingSenderId: "314629793001",
+            appId: "1:314629793001:web:ddcdbb8e32868430abbc78",
+            measurementId: "G-G9PC7NTLPP"
+        };
+
+        const ADMIN_NAME = "sakis";
+        const ADMIN_PASS = "019630";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        let currentUser = null;
+        let banUnsub = null;
+        let currentDM = null;
+        let currentDMChatId = null;
+        let dmMessagesUnsub = null;
+        let dmNotificationUnsub = null;
+        let publicMessagesUnsub = null;
+        let pendingDMNotification = null;
+        
+        const notificationSound = new Audio('https://cdn.pixabay.com/audio/2024/02/08/audio_b7f03fb030.mp3');
+        let soundEnabled = localStorage.getItem('chatSoundEnabled') !== 'false';
+        let savedVolume = parseFloat(localStorage.getItem('chatSoundVolume') || '0.5');
+        notificationSound.volume = savedVolume;
+        let isPlayingSound = false;
+        let seenPublicMessageIds = new Set();
+        let seenDMMessageIds = new Set();
+        let isFirstPublicLoad = true;
+        let isFirstDMLoad = true;
+        
+        function playNotificationSound() {
+            if (!soundEnabled || isPlayingSound) return;
+            isPlayingSound = true;
+            notificationSound.currentTime = 0;
+            notificationSound.play().catch(e => console.log("Audio play failed:", e));
+            notificationSound.onended = () => { isPlayingSound = false; };
+            setTimeout(() => { isPlayingSound = false; }, 3000);
+        }
+        
+        let selectedPeriodDays = null;
+        let usersToDelete = [];
+
+        async function hashPassword(password) {
+            if (!password) return '';
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        window.toggleRadioModal = () => {
+            const modal = document.getElementById('radio-modal');
+            modal.classList.toggle('active');
+        };
+
+        window.closeRadioModal = () => {
+            document.getElementById('radio-modal').classList.remove('active');
+        };
+
+        function startRadio() {
+            const iframe = document.getElementById('radio-iframe');
+            if (!iframe.src || iframe.src === '' || iframe.src === window.location.href) {
+                iframe.src = 'player.html';
+            }
+        }
+
+        function stopRadio() {
+            const iframe = document.getElementById('radio-iframe');
+            iframe.src = 'about:blank';
+            closeRadioModal();
+        }
+
+        function compressImage(file, maxWidth = 800, quality = 0.7) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                        
+                        const sizeInMB = (compressedDataUrl.length * 0.75) / (1024 * 1024);
+                        if (sizeInMB > 0.9) {
+                            const finalDataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                            resolve(finalDataUrl);
+                        } else {
+                            resolve(compressedDataUrl);
+                        }
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        const emojiCategories = {
+            faces: ['😀','😃','😄','😁','😆','😅','','😂','🙂','🙃','😉','😊','😇','🥰','','🤩','😘','😗','😚','😙','🥲','','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','🫥','','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','','😕','🫤','😟','🙁','☹️','😮','','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','','😤','😡','😠','🤬','😈','👿','','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'],
+            hands: ['👋','','🖐️','✋','🖖','🫱','🫲','🫳','🫴','','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','','✊','👊','','🤜','👏','','🫶','👐','','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','','👃','🧠','','🫁','🦷','🦴','👀','👁️','👅','👄',''],
+            hearts: ['❤️','🧡','💛','💚','','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕','💞','💓','💗','💖','','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','','🕎','☯️','️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','','💮','🉐','️','㊗️','','🈵','🈹','','🅰️','🅱️','🆎','🆑','️','🆘','❌','','🛑','⛔','','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','','❕','❓','❔','‼️','⁉️','🔅','','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','','♿','🅿️','🛗','🈳','️','🛂','🛃','🛄','🛅','🚰','🚹','🚺','🚼','🚻','🚮','','📶','🈁','','ℹ️','🔤','🔡','🔠','','🆙','🆒','🆕','🆓','0️','1️⃣','2️','3️⃣','4️','5️⃣','6️','7️⃣','8️','9️⃣','🔟','🔢','#️⃣','*️⃣','⏏️','▶️','⏸️','⏯️','️','⏺️','⏭️','⏮️','⏩','','⏫','⏬','️','🔼','🔽','➡️','⬅️','⬆️','⬇️','↗️','↘️','↙️','↖️','↕️','↔️','↪️','↩️','⤴️','⤵️','🔀','','🔂','🔄','','🎵','🎶','➕','➖','➗','✖️','🟰','♾️','💲','💱','™️','©️','®️','👁️‍🗨️','','🔙','🔛','','🔜','〰️','➰','➿','✔️','☑️','🔘','🔴','🟠','🟡','','🔵','🟣','','⚪','🟤','🔺','🔻','','🔹','🔶','','🔳','🔲','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','🟫','🔈','🔇','🔉','🔊','🔔','🔕','📣','📢','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','🎴','🀄','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛'],
+            animals: ['🐶','🐱','','🐹','🐰','','🐻','🐼','‍❄️','','🐯','🦁','','🐷','🐽','','🐵','🙈','','🙊','🐒','','🐧','🐦','','🐣','🐥','','🦅','🦉','','🐺','🐗','','🦄','🐝','','🐛','🦋','','🐞','🐜','','🪲','🪳','','🦗','🕷️','️','🦂','🐢','🐍','🦎','','🦕','🐙','','🦐','🦀','','🐟','🐬','🐳','🐋','','🦭','🐊','','🐆','🦓','','🦧','🐘','','🦏','🐪','','🦒','🦘','🦬','🐃','🐂','','🐎','🐖','','🐑','🦙','','🦌','🐕','','🦮','🐕‍','🐈','🐈⬛','🪶','','🦃','🦤','','🦜','🦢','','🕊️','🐇','','🦨','🦡','🦫','🦦','🦥','🐁','🐀','️','🦔'],
+            food: ['🍏','🍎','','🍊','🍋','','🍉','🍇','','🫐','🍈','','🍑','🥭','','🥥','🥝','','🍆','🥑','','🥬','🥒','️','🫑','🌽','','🫒','','🧅','🥔','','🥐','🥯','','🥖','🥨','','🥚','🍳','','🥞','🧇','','🥩','🍗','','🦴','🌭','','🍟','🍕','','🥪','🥙','','🌮','🌯','','🥗','🥘','','🥫','🍝','','🍲','🍛','','🍱','🥟','','🍤','🍙','','🍘','🍥','','🥮','🍢','','🍧','🍨','','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','','🥜','🍯','','🍼','🫖','☕','🍵','🧃','','🧋','🍶','','🍻','🥂','','🥃','🍸','','🧉','🍾','','🥄','🍴','️','🥣','🥡','','🧂'],
+            objects: ['⚽','🏀','','⚾','🥎','','🏐','🏉','','🎱','🪀','','🏸','🏒','','🥍','🏏','','🥅','⛳','','🏹','🎣','','🥊','🥋','','🛹','🛼','','⛸️','🥌','🎿','⛷️','','🪂','🏋️','🤼','🤸','⛹️','🤺','🤾','️','🏇','🧘','🏄','🏊','','🚣','🧗','','🚴','🏆','','🥈','🥉','','🎖️','🏵️','🎗️','🎫','️','🎪','🤹','','🩰','🎨','🎬','🎤','🎧','🎼','🎹','','🪘','🎺','🪗','🎸','🪕','🎻','🎲','️','🎯','🎳','🎮','🎰','','🚗','🚕','','🚌','🚎','️','🚓','🚑','','🚐','🛻','','🚛','🚜','️','🛵','','🚲','🛴','','🛼','🚨','','🚍','🚘','','🛎️','','⌛','⏳','','⏰','⏱️','⏲️','🕰️','🕛','🕧','🕐','🕜','🕑','🕝','🕒','🕞','🕓','🕟','🕔','🕠','🕕','🕡','🕖','🕢','🕗','🕣','🕘','🕤','🕙','🕥','🕚','🕦','🌑','','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','🌡️','️','🌝','🌞','','⭐','🌟','🌠','🌌','☁️','⛅','⛈️','🌤️','️','🌦️','🌧️','🌨️','🌩️','🌪️','🌫️','🌬️','🌀','🌈','🌂','☂️','☔','⛱️','⚡','️','☃️','⛄','☄️','🔥','','🌊','🎃','','🎆','🎇','','✨','🎈','','🎊','🎋','','🎎','🎏','','🎑','🧧','','🎁','🎗️','️','🎫','🎖️','🏆','🏅','','🥈','🥉','','⚾','','🏀','🏐','🏈','🏉','','🥏','🎳','','🏑','🏒','','🏓','🏸','','🥋','🥅','⛳','⛸️','','🤿','🎽','','🛷','🥌','','🪀','🪁','','🔮','🪄','','🎮','🕹️','🎰','🎲','','🧸','🪅','','♠️','♥️','♦️','♣️','♟️','','🀄','','🎭','🖼️','','🧵','','🧶','👓','️','🥽','','🦺','👔','','👖','🧣','🧤','🧥','🧦','👗','👘','','🩱','🩲','','👙','👚','','👜','👝','️','🎒','🩴','','👟','🥾','🥿','👠','👡','🩰','👢','','👒','🎩','','🧢','🪖','️','📿','💄','💍','💎','🔇','','🔉','🔊','','📣','📯','','🔕','🎼','','🎶','🎙️','🎚️','🎛️','🎤','🎧','','🎷','🪗','','🎹','🎺','','🪕','🥁','','📱','📲','️','📞','','📠','🔋','','💻','🖥️','🖨️','⌨️','️','🖲️','💽','💾','💿','📀','','🎥','️','📽️','','📺','📷','','📹','📼','','🔎','🕯️','','🔦','🏮','','📔','📕','📖','📗','📘','📙','📚','','📒','📃','','📄','📰','️','📑','','🏷️','💰','','💴','💵','','💷','💸','💳','','💹','✉️','','📨','📩','','📥','📦','','📪','📬','','📮','🗳️','✏️','✒️','🖋️','🖊️','🖌️','🖍️','📝','','📁','📂','️','📅','','🗒️','🗓️','📇','📈','','📊','📋','','📍','📎','️','📏','','✂️','🗃️','🗄️','🗑️','🔒','🔓','🔏','🔐','🔑','🗝️','🔨','🪓','⛏️','⚒️','🛠️','🗡️','⚔️','🔫','','🏹','️','🪚','🔧','','🔩','⚙️','🗜️','⚖️','','🔗','⛓️','🪝','🧰','🧲','🪜','️','🧪','🧫','','🔬','🔭','','💉','🩸','','🩹','🩺','🩼','🚪','','🪞','🪟','️','🛋️','🪑','🚽','🪠','','🛁','🪤','','🧴','🧷','','🧺','🧻','','🧼','🪥','','🧯','🛒','','⚰️','','⚱️','','🪧','🪪'],
+            symbols: ['🏧','🚮','🚰','','🚹','🚺','','🚼','🚾','','🛃','🛄','🛅','⚠️','🚸','⛔','🚫','🚳','🚭','🚯','🚱','🚷','','🔞','☢️','️','⬆️','↗️','➡️','↘️','⬇️','↙️','⬅️','↖️','↕️','↔️','↩️','↪️','️','⤵️','','🔄','🔙','','🔛','🔜','','🛐','⚛️','🕉️','✡️','☸️','☯️','️','☦️','☪️','️','🕎','🔯','','♉','♊','♋','','♍','♎','♏','','♑','♒','♓','','🔀','🔁','🔂','▶️','','⏭️','⏯️','◀️','⏪','⏮️','🔼','⏫','🔽','','⏸️','️','⏺️','⏏️','🎦','🔅','🔆','📶','📳','📴','♀️','♂️','️','✖️','➕','','➗','♾️','‼️','⁉️','❓','❔','❕','❗','〰️','💱','💲','⚕️','♻️','⚜️','','📛','🔰','','✅','☑️','✔️','❌','❎','','➿','〽️','️','✴️','❇️','©️','®️','™️','#️⃣','*️⃣','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','🔠','🔡','🔢','🔣','','🅰️','🆎','🅱️','🆑','','🆓','ℹ️','','Ⓜ️','','🆖','🅾️','','🅿️','🆘','🆙','🆚','','🈂️','🈷️','🈶','🈯','','🈹','🈚','','🉑','🈸','','🈳','㊗️','㊙️','','🈵','🔴','','🟡','🟢','','🟣','🟤','','⚪','🟥','🟧','🟨','🟩','🟦','🟪','','⬛','⬜','️','◻️','◾','◽','▪️','▫️','🔶','🔷','','🔹','🔺','','💠','🔘','','🔲']
+        };
+
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+
+        window.toggleThemePanel = () => {
+            document.getElementById('theme-panel').classList.toggle('active');
+        };
+        
+        window.toggleVolumePanel = () => {
+            document.getElementById('volume-panel').classList.toggle('active');
+        };
+        
+        window.toggleMute = () => {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('chatSoundEnabled', soundEnabled);
+            const muteBtn = document.getElementById('volume-mute-btn');
+            if (soundEnabled) {
+                muteBtn.textContent = ' Mute';
+                muteBtn.style.background = '#e74c3c';
+            } else {
+                muteBtn.textContent = '🔊 Unmute';
+                muteBtn.style.background = '#27ae60';
+            }
+        };
+
+        window.toggleEmojiPanel = () => {
+            const panel = document.getElementById('emoji-panel');
+            panel.classList.toggle('active');
+            if (panel.classList.contains('active') && !document.getElementById('emoji-grid').hasChildNodes()) {
+                showEmojiCategory('faces');
+            }
+        };
+
+        window.showEmojiCategory = (category) => {
+            const grid = document.getElementById('emoji-grid');
+            grid.innerHTML = '';
+            const emojis = emojiCategories[category] || [];
+            emojis.forEach(emoji => {
+                const btn = document.createElement('button');
+                btn.className = 'emoji-item';
+                btn.textContent = emoji;
+                btn.onclick = () => {
+                    document.getElementById('msg-input').value += emoji;
+                    document.getElementById('msg-input').focus();
+                };
+                grid.appendChild(btn);
+            });
+            
+            document.querySelectorAll('.emoji-cat-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        };
+
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('emoji-panel');
+            const emojiBtn = document.querySelector('.emoji-btn');
+            if (panel.classList.contains('active') && 
+                !panel.contains(e.target) && 
+                !emojiBtn.contains(e.target)) {
+                panel.classList.remove('active');
+            }
+        });
+
+        const themeSlider = document.getElementById('theme-slider');
+        const themeValue = document.getElementById('theme-value');
+        const bgOverlay = document.getElementById('bg-overlay');
+
+        function updateSidebarOpacity(mainOpacity) {
+            const sidebarOpacity = Math.min(mainOpacity + 0.20, 0.95);
+            document.documentElement.style.setProperty('--sidebar-opacity', sidebarOpacity);
+        }
+
+        const savedOpacity = localStorage.getItem('chatBgOpacity') || '60';
+        themeSlider.value = savedOpacity;
+        themeValue.textContent = savedOpacity + '%';
+        bgOverlay.style.background = `rgba(0, 0, 0, ${savedOpacity / 100})`;
+        
+        updateSidebarOpacity(savedOpacity / 100);
+
+        themeSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            themeValue.textContent = value + '%';
+            bgOverlay.style.background = `rgba(0, 0, 0, ${value / 100})`;
+            localStorage.setItem('chatBgOpacity', value);
+            
+            updateSidebarOpacity(value / 100);
+        });
+        
+        const volumeSlider = document.getElementById('volume-slider');
+        const volumeValue = document.getElementById('volume-value');
+        volumeSlider.value = Math.round(savedVolume * 100);
+        volumeValue.textContent = Math.round(savedVolume * 100) + '%';
+        
+        volumeSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            volumeValue.textContent = value + '%';
+            notificationSound.volume = value / 100;
+            localStorage.setItem('chatSoundVolume', (value / 100).toString());
+        });
+        
+        if (!soundEnabled) {
+            const muteBtn = document.getElementById('volume-mute-btn');
+            muteBtn.textContent = '🔊 Unmute';
+            muteBtn.style.background = '#27ae60';
+        }
+
+        window.onload = async () => {
+            const savedName = localStorage.getItem('chatUserName');
+            const savedPass = localStorage.getItem('chatUserPass');
+            
+            if (savedName && savedPass) {
+                document.getElementById('username').value = savedName;
+                document.getElementById('user-pass').value = savedPass;
+                await enterChat(true);
+            }
+        };
+
+        function kickUser(message) {
+            if (banUnsub) banUnsub();
+            alert(message);
+            stopRadio();
+            currentUser = null;
+            localStorage.removeItem('chatUserName');
+            localStorage.removeItem('chatUserPass');
+            document.getElementById('chat-container').style.display = 'none';
+            document.getElementById('login-modal').style.display = 'flex';
+            document.getElementById('username').value = '';
+            document.getElementById('user-pass').value = '';
+            document.getElementById('admin-pass').value = '';
+        }
+
+        function makeChatId(nameA, nameB) {
+            const sorted = [nameA.toLowerCase(), nameB.toLowerCase()].sort();
+            return sorted[0] + '_' + sorted[1];
+        }
+
+        function startPublicMessagesListener() {
+            if (publicMessagesUnsub) publicMessagesUnsub();
+            const q = query(collection(db, "messages"), orderBy("timestamp"), limit(100));
+            isFirstPublicLoad = true;
+            seenPublicMessageIds.clear();
+            publicMessagesUnsub = onSnapshot(q, (snapshot) => {
+                if (currentDM) return;
+                
+                const container = document.getElementById('messages');
+                const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+                container.innerHTML = '';
+                snapshot.forEach(ds => {
+                    const m = ds.data();
+                    const isOwn = m.user === currentUser?.name;
+                    
+                    if (!isFirstPublicLoad && !seenPublicMessageIds.has(ds.id) && !isOwn) {
+                        playNotificationSound();
+                    }
+                    seenPublicMessageIds.add(ds.id);
+                    
+                    const avatarUrl = m.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.user || '?')}&background=4a90e2&color=fff`;
+                    
+                    let html = `<div class="message ${isOwn ? 'own' : 'other'}">`;
+                    html += `<img src="${avatarUrl}" class="avatar">`;
+                    html += `<div><strong>${m.user || 'Unknown'}:</strong><br>`;
+                    if (m.text) html += m.text;
+                    if (m.image) html += `<br><img src="${m.image}" style="max-width:200px;border-radius:8px;margin-top:5px;" ondblclick="openLightbox('${m.image}')">`;
+                    html += `</div></div>`;
+                    container.innerHTML += html;
+                });
+                isFirstPublicLoad = false;
+                if (isAtBottom) container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        function stopPublicMessagesListener() {
+            if (publicMessagesUnsub) {
+                publicMessagesUnsub();
+                publicMessagesUnsub = null;
+            }
+        }
+
+        window.enterChat = async (autoLogin = false) => {
+            const name = document.getElementById('username').value.trim();
+            const userPass = document.getElementById('user-pass').value.trim();
+            const adminPass = document.getElementById('admin-pass').value.trim();
+            
+            if (!name) return alert("Βάλε όνομα");
+            if (!userPass) return alert("Βάλε κωδικό!");
+            
+            const bannedDoc = await getDoc(doc(db, "banned", name));
+            if (bannedDoc.exists()) return alert("🚫 Έχεις αποκλειστεί!");
+            
+            const userDocRef = doc(db, "users", name);
+            const userDoc = await getDoc(userDocRef);
+            const hashedInputPass = await hashPassword(userPass);
+            
+            if (userDoc.exists()) {
+                const existingUser = userDoc.data();
+                
+                // ΑΥΣΤΗΡΟΣ ΕΛΕΓΧΟΣ - πρέπει οπωσδήποτε να ταιριάζει ο κωδικός
+                if (!existingUser.password || existingUser.password !== hashedInputPass) {
+                    return alert("❌ Λάθος κωδικός! Το όνομα είναι κατοχυρωμένο.");
+                }
+                
+                currentUser = { name, avatar: existingUser.avatar || '', isAdmin: existingUser.isAdmin || false };
+            } else {
+                // Νέος χρήστης
+                currentUser = { name, avatar: '', isAdmin: false, password: hashedInputPass };
+            }
+            
+            if (name.toLowerCase() === ADMIN_NAME.toLowerCase() && adminPass === ADMIN_PASS) {
+                currentUser.isAdmin = true;
+            }
+            
+            localStorage.setItem('chatUserName', name);
+            localStorage.setItem('chatUserPass', userPass);
+            
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('chat-container').style.display = 'flex';
+            
+            startRadio();
+            
+            if (currentUser.isAdmin) {
+                document.getElementById('banned-btn').style.display = 'inline-block';
+                document.getElementById('clear-chat-btn').style.display = 'inline-block';
+                document.getElementById('clear-users-btn').style.display = 'inline-block';
+            }
+            
+            await setDoc(userDocRef, { 
+                name: currentUser.name,
+                avatar: currentUser.avatar,
+                isAdmin: currentUser.isAdmin,
+                password: currentUser.password || hashedInputPass,
+                lastSeen: Timestamp.now() 
+            });
+            
+            setInterval(() => {
+                if(currentUser) updateDoc(userDocRef, { lastSeen: Timestamp.now() }).catch(e => console.error(e));
+            }, 10000);
+            
+            if (banUnsub) banUnsub();
+            banUnsub = onSnapshot(doc(db, "banned", currentUser.name), (snap) => {
+                if (snap.exists()) kickUser(" Ο διαχειριστής σε απέκλεισε!");
+            });
+
+            startDMNotificationsListener();
+            startPublicMessagesListener();
+        };
+
+        window.logout = async () => {
+            if (!currentUser) return;
+            
+            if (!confirm("⚠️ Προσοχή: Αν αποσυνδεθείτε, χάνετε τη δέσμευση του ονόματός σας. Αν κάποιος άλλος το πάρει, δεν θα μπορείτε να εισέλθετε ξανά με αυτό το όνομα. Επιβεβαιώνετε;")) {
+                return;
+            }
+            
+            if (banUnsub) banUnsub();
+            if (dmMessagesUnsub) dmMessagesUnsub();
+            if (dmNotificationUnsub) dmNotificationUnsub();
+            stopPublicMessagesListener();
+            
+            stopRadio();
+            
+            try {
+                await updateDoc(doc(db, "users", currentUser.name), { lastSeen: Timestamp.fromMillis(0) }).catch(e => console.error(e));
+                
+                localStorage.removeItem('chatUserName');
+                localStorage.removeItem('chatUserPass');
+                currentUser = null;
+                currentDM = null;
+                currentDMChatId = null;
+                document.getElementById('chat-container').style.display = 'none';
+                document.getElementById('login-modal').style.display = 'flex';
+                document.getElementById('username').value = '';
+                document.getElementById('user-pass').value = '';
+                document.getElementById('admin-pass').value = '';
+            } catch(e) { console.error(e); }
+        };
+
+        window.banUser = async (userName) => {
+            if (!currentUser?.isAdmin) return;
+            if (!confirm(`Θέλεις να αποκλείσεις τον ${userName};`)) return;
+            
+            try {
+                await setDoc(doc(db, "banned", userName), { 
+                    bannedBy: currentUser.name,
+                    bannedAt: Timestamp.now()
+                });
+                alert(`Ο ${userName} αποκλείστηκε!`);
+            } catch(e) {
+                alert("Σφάλμα: " + e.message);
+            }
+        };
+
+        window.openBannedPanel = () => {
+            if (!currentUser?.isAdmin) return;
+            document.getElementById('banned-modal').style.display = 'flex';
+            loadBannedUsers();
+        };
+
+        window.closeBannedPanel = () => {
+            document.getElementById('banned-modal').style.display = 'none';
+        };
+
+        window.unbanUser = async (userName) => {
+            if (!currentUser?.isAdmin) return;
+            if (!confirm(`Θέλεις να ξε-αποκλείσεις τον ${userName};`)) return;
+            
+            try {
+                await deleteDoc(doc(db, "banned", userName));
+                alert(`Ο ${userName} ξε-αποκλείστηκε!`);
+                loadBannedUsers();
+            } catch(e) {
+                alert("Σφάλμα: " + e.message);
+            }
+        };
+
+        function loadBannedUsers() {
+            const list = document.getElementById('banned-list');
+            list.innerHTML = '<p>Φόρτωση...</p>';
+            
+            onSnapshot(collection(db, "banned"), (snapshot) => {
+                list.innerHTML = '';
+                if (snapshot.empty) {
+                    list.innerHTML = '<p style="text-align:center; color:#888;">Δεν υπάρχουν αποκλεισμένοι χρήστες</p>';
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const userName = doc.id;
+                    const bannedDate = data.bannedAt?.toDate?.().toLocaleString('el-GR') || 'Άγνωστη ημερομηνία';
+                    
+                    const item = document.createElement('div');
+                    item.className = 'banned-item';
+                    item.innerHTML = `
+                        <div>
+                            <strong>${userName}</strong><br>
+                            <small style="color:#888;">Αποκλείστηκε: ${bannedDate}</small>
+                        </div>
+                        <button class="unban-btn" onclick="unbanUser('${userName}')">✅ Unban</button>
+                    `;
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        window.clearPublicChat = async () => {
+            if (!currentUser?.isAdmin) return;
+            
+            if (!confirm("️ Είσαι σίγουρος ότι θέλεις να διαγράψεις ΟΛΑ τα δημόσια μηνύματα;")) {
+                return;
+            }
+            
+            const progressEl = document.getElementById('clear-progress');
+            progressEl.classList.add('active');
+            progressEl.textContent = ' Προετοιμασία διαγραφής...';
+            
+            try {
+                const snapshot = await getDocs(collection(db, "messages"));
+                const totalMessages = snapshot.size;
+                
+                if (totalMessages === 0) {
+                    progressEl.textContent = '✅ Το chat είναι ήδη άδειο!';
+                    setTimeout(() => progressEl.classList.remove('active'), 2000);
+                    return;
+                }
+                
+                progressEl.textContent = `🧹 Διαγραφή 0/${totalMessages} μηνυμάτων...`;
+                
+                const docs = snapshot.docs;
+                let deletedCount = 0;
+                const batchSize = 10;
+                
+                for (let i = 0; i < docs.length; i += batchSize) {
+                    const batch = docs.slice(i, i + batchSize);
+                    const promises = batch.map(d => deleteDoc(d.ref));
+                    await Promise.all(promises);
+                    
+                    deletedCount += batch.length;
+                    progressEl.textContent = `🧹 Διαγραφή ${deletedCount}/${totalMessages} μηνυμάτων...`;
+                }
+                
+                progressEl.textContent = `✅ Ολοκληρώθηκε! Διαγράφηκαν ${totalMessages} μηνύματα.`;
+                setTimeout(() => progressEl.classList.remove('active'), 3000);
+                
+            } catch(err) {
+                progressEl.textContent = '❌ Σφάλμα: ' + err.message;
+                setTimeout(() => progressEl.classList.remove('active'), 5000);
+            }
+        };
+
+        window.openClearUsersModal = () => {
+            if (!currentUser?.isAdmin) return;
+            
+            selectedPeriodDays = null;
+            usersToDelete = [];
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('custom-input-container').classList.remove('active');
+            document.getElementById('custom-days').value = '';
+            document.getElementById('clear-users-preview').style.display = 'none';
+            document.getElementById('clear-users-progress').classList.remove('active');
+            document.getElementById('execute-clear-btn').disabled = true;
+            
+            document.getElementById('clear-users-modal').style.display = 'flex';
+        };
+
+        window.closeClearUsersModal = () => {
+            document.getElementById('clear-users-modal').style.display = 'none';
+        };
+
+        window.selectPeriod = async (period, btnElement) => {
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('selected'));
+            btnElement.classList.add('selected');
+            
+            const customContainer = document.getElementById('custom-input-container');
+            
+            if (period === 'custom') {
+                customContainer.classList.add('active');
+                selectedPeriodDays = null;
+                document.getElementById('clear-users-preview').style.display = 'none';
+                document.getElementById('execute-clear-btn').disabled = true;
+            } else {
+                customContainer.classList.remove('active');
+                selectedPeriodDays = period;
+                await updatePreview();
+            }
+        };
+
+        window.updatePreview = async () => {
+            const customInput = document.getElementById('custom-days');
+            let days = selectedPeriodDays;
+            
+            if (days === null) {
+                const customVal = parseInt(customInput.value);
+                if (isNaN(customVal) || customVal < 1) {
+                    document.getElementById('clear-users-preview').style.display = 'none';
+                    document.getElementById('execute-clear-btn').disabled = true;
+                    return;
+                }
+                days = customVal;
+            }
+            
+            const cutoffMs = Date.now() - (days * 24 * 60 * 60 * 1000);
+            
+            try {
+                const snapshot = await getDocs(collection(db, "users"));
+                usersToDelete = [];
+                
+                snapshot.forEach(d => {
+                    const userName = d.id;
+                    
+                    if (userName.toLowerCase() === ADMIN_NAME.toLowerCase()) return;
+                    
+                    const data = d.data();
+                    const lastSeenMs = data.lastSeen?.toMillis?.() || data.lastSeen?.seconds * 1000 || 0;
+                    
+                    if (lastSeenMs < cutoffMs) {
+                        const lastSeenDate = lastSeenMs > 0 ? new Date(lastSeenMs).toLocaleDateString('el-GR') : 'Ποτέ';
+                        usersToDelete.push({ name: userName, lastSeen: lastSeenDate });
+                    }
+                });
+                
+                const previewEl = document.getElementById('clear-users-preview');
+                const listEl = document.getElementById('preview-list');
+                
+                if (usersToDelete.length === 0) {
+                    previewEl.style.display = 'block';
+                    listEl.innerHTML = '<div style="text-align:center; color:#888; padding:10px;">Δεν βρέθηκαν ονόματα.</div>';
+                    document.getElementById('execute-clear-btn').disabled = true;
+                } else {
+                    previewEl.style.display = 'block';
+                    listEl.innerHTML = usersToDelete.map(u => 
+                        `<div class="preview-item">👤 <strong>${u.name}</strong> <span style="color:#888; font-size:11px;">(τελ. είσοδος: ${u.lastSeen})</span></div>`
+                    ).join('');
+                    document.getElementById('execute-clear-btn').disabled = false;
+                }
+            } catch(err) {
+                alert("Σφάλμα: " + err.message);
+            }
+        };
+
+        window.executeClearUsers = async () => {
+            if (!currentUser?.isAdmin || usersToDelete.length === 0) return;
+            
+            if (!confirm(`⚠️ Θα διαγραφούν ${usersToDelete.length} ονόματα. Συνέχεια;`)) {
+                return;
+            }
+            
+            const progressEl = document.getElementById('clear-users-progress');
+            progressEl.classList.add('active');
+            document.getElementById('execute-clear-btn').disabled = true;
+            
+            let totalDeleted = 0;
+            let totalMessagesDeleted = 0;
+            
+            try {
+                for (let i = 0; i < usersToDelete.length; i++) {
+                    const user = usersToDelete[i];
+                    progressEl.textContent = `🧹 Διαγραφή ${i + 1}/${usersToDelete.length}: ${user.name}...`;
+                    
+                    try {
+                        const publicMsgs = await getDocs(collection(db, "messages"));
+                        publicMsgs.forEach(d => {
+                            if (d.data().user === user.name) {
+                                deleteDoc(d.ref);
+                                totalMessagesDeleted++;
+                            }
+                        });
+                    } catch(e) { console.error(e); }
+                    
+                    try {
+                        const chatsSnap = await getDocs(collection(db, "chats"));
+                        for (const chatDoc of chatsSnap.docs) {
+                            const chatData = chatDoc.data();
+                            const participants = chatData.participants || [];
+                            if (participants.includes(user.name.toLowerCase())) {
+                                const msgsSnap = await getDocs(collection(db, "chats", chatDoc.id, "messages"));
+                                for (const msgDoc of msgsSnap.docs) {
+                                    await deleteDoc(msgDoc.ref);
+                                    totalMessagesDeleted++;
+                                }
+                                await deleteDoc(chatDoc.ref);
+                            }
+                        }
+                    } catch(e) { console.error(e); }
+                    
+                    try {
+                        await deleteDoc(doc(db, "users", user.name));
+                    } catch(e) { console.error(e); }
+                    
+                    totalDeleted++;
+                }
+                
+                progressEl.textContent = `✅ Ολοκληρώθηκε! Διαγράφηκαν ${totalDeleted} ονόματα.`;
+                setTimeout(() => {
+                    closeClearUsersModal();
+                }, 3000);
+                
+            } catch(err) {
+                progressEl.textContent = ' Σφάλμα: ' + err.message;
+                setTimeout(() => progressEl.classList.remove('active'), 5000);
+            }
+        };
+
+        document.getElementById('avatar-upload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !currentUser) return;
+            
+            try {
+                const compressedAvatar = await compressImage(file, 200, 0.8);
+                currentUser.avatar = compressedAvatar;
+                await updateDoc(doc(db, "users", currentUser.name), { avatar: currentUser.avatar });
+                alert('Η φωτογραφία σου άλλαξε!');
+            } catch(err) {
+                alert('Σφάλμα: ' + err.message);
+            }
+        });
+
+        document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('img-upload').click());
+
+        document.getElementById('img-upload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !currentUser) return;
+            
+            const maxSizeMB = 10;
+            const fileSizeMB = file.size / (1024 * 1024);
+            
+            if (fileSizeMB > maxSizeMB) {
+                alert(`⚠️ Η φωτογραφία είναι πολύ μεγάλη!`);
+                e.target.value = '';
+                return;
+            }
+            
+            try {
+                let imageData;
+                
+                if (file.type === 'image/gif') {
+                    imageData = await readFileAsDataURL(file);
+                } else {
+                    imageData = await compressImage(file, 800, 0.7);
+                }
+                
+                if (currentDM) {
+                    await addDoc(collection(db, "chats", currentDMChatId, "messages"), { 
+                        image: imageData, 
+                        user: currentUser.name, 
+                        userAvatar: currentUser.avatar, 
+                        timestamp: Timestamp.now() 
+                    });
+                    await updateDoc(doc(db, "chats", currentDMChatId), {
+                        lastMessage: '[Εικόνα]',
+                        lastMessageTime: Timestamp.now(),
+                        lastMessageFrom: currentUser.name
+                    });
+                } else {
+                    await addDoc(collection(db, "messages"), { image: imageData, user: currentUser.name, userAvatar: currentUser.avatar, timestamp: Timestamp.now() });
+                }
+                e.target.value = '';
+            } catch(err) {
+                alert('Σφάλμα: ' + err.message);
+                e.target.value = '';
+            }
+        });
+
+        onSnapshot(collection(db, "users"), (snapshot) => {
+            const list = document.getElementById('user-list');
+            list.innerHTML = '';
+            let onlineCount = 0;
+            const now = Date.now();
+
+            snapshot.forEach(d => {
+                const u = d.data();
+                const lastSeenMs = u.lastSeen?.toMillis?.() || u.lastSeen?.seconds * 1000 || 0;
+                const isOnline = lastSeenMs > 0 && (now - lastSeenMs) < 30000;
+                
+                if (isOnline) {
+                    onlineCount++;
+                    const isSelf = d.id === currentUser?.name;
+                    const avatarUrl = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=4a90e2&color=fff`;
+                    const adminBadge = u.isAdmin ? '<span class="admin-badge">👑 Admin</span>' : '';
+                    
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user-item';
+                    
+                    let actionBtns = '';
+                    if (!isSelf) {
+                        actionBtns += `<button class="dm-btn" onclick="openDM('${u.name}')" title="Προσωπικό μήνυμα">💬</button>`;
+                    }
+                    if (currentUser?.isAdmin && !isSelf && !u.isAdmin) {
+                        actionBtns += `<button class="ban-btn" onclick="banUser('${u.name}')">🔨</button>`;
+                    }
+                    
+                    userDiv.innerHTML = `<img src="${avatarUrl}" class="avatar"><span>${u.name}${adminBadge}${isSelf ? ' (Εσύ)' : ''}</span>${actionBtns}`;
+                    if (isSelf) userDiv.querySelector('.avatar').addEventListener('click', () => document.getElementById('avatar-upload').click());
+                    list.appendChild(userDiv);
+                }
+            });
+            document.getElementById('online-count').textContent = onlineCount;
+        });
+
+        function startDMNotificationsListener() {
+            if (dmNotificationUnsub) dmNotificationUnsub();
+            const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.name.toLowerCase()));
+            dmNotificationUnsub = onSnapshot(q, (snapshot) => {
+                let showNotification = false;
+                let notifPartner = null;
+                let notifChatId = null;
+                let latestTime = 0;
+
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    const chatId = d.id;
+                    const participants = data.participants || [];
+                    const partnerLower = participants.find(p => p !== currentUser.name.toLowerCase());
+                    const lastTime = data.lastMessageTime?.toMillis?.() || 0;
+                    const lastFrom = data.lastMessageFrom;
+                    const lastMessage = data.lastMessage || '';
+                    
+                    const lastReadMs = data[`lastReadBy${currentUser.name.toLowerCase()}`]?.toMillis?.() || 0;
+
+                    if (lastFrom && lastFrom !== currentUser.name && lastTime > latestTime && lastMessage && lastTime > lastReadMs) {
+                        if (currentDM !== partnerLower && currentDM?.toLowerCase() !== partnerLower) {
+                            latestTime = lastTime;
+                            notifPartner = partnerLower;
+                            notifChatId = chatId;
+                            showNotification = true;
+                        }
+                    }
+                });
+
+                const notifEl = document.getElementById('dm-notification');
+                if (showNotification) {
+                    pendingDMNotification = { chatId: notifChatId, partnerName: notifPartner };
+                    document.getElementById('dm-notification-text').textContent = `💬 Νέο μήνυμα από ${notifPartner}`;
+                    notifEl.classList.add('active');
+                } else if (!pendingDMNotification) {
+                    notifEl.classList.remove('active');
+                }
+            });
+        }
+
+        window.openDMFromNotification = () => {
+            if (!pendingDMNotification) return;
+            const { chatId, partnerName } = pendingDMNotification;
+            pendingDMNotification = null;
+            document.getElementById('dm-notification').classList.remove('active');
+            enterDMView(partnerName, chatId);
+        };
+
+        window.openDM = async (partnerName) => {
+            if (!currentUser || partnerName.toLowerCase() === currentUser.name.toLowerCase()) return;
+            const chatId = makeChatId(currentUser.name, partnerName);
+            
+            const chatRef = doc(db, "chats", chatId);
+            const chatSnap = await getDoc(chatRef);
+            if (!chatSnap.exists()) {
+                await setDoc(chatRef, {
+                    participants: [currentUser.name.toLowerCase(), partnerName.toLowerCase()].sort(),
+                    lastMessage: '',
+                    lastMessageTime: null,
+                    lastMessageFrom: ''
+                });
+            }
+            
+            if (pendingDMNotification?.partnerName?.toLowerCase() === partnerName.toLowerCase()) {
+                pendingDMNotification = null;
+                document.getElementById('dm-notification').classList.remove('active');
+            }
+            
+            enterDMView(partnerName, chatId);
+        };
+
+        function enterDMView(partnerName, chatId) {
+            currentDM = partnerName;
+            currentDMChatId = chatId;
+            
+            stopPublicMessagesListener();
+            
+            document.getElementById('dm-header').classList.add('active');
+            document.getElementById('dm-partner-name').textContent = `💬 Συνομιλία με ${partnerName}`;
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('msg-input').placeholder = `Μήνυμα στον ${partnerName}...`;
+            
+            const readField = `lastReadBy${currentUser.name.toLowerCase()}`;
+            updateDoc(doc(db, "chats", chatId), { [readField]: Timestamp.now() }).catch(e => console.error(e));
+            
+            if (dmMessagesUnsub) dmMessagesUnsub();
+            
+            isFirstDMLoad = true;
+            seenDMMessageIds.clear();
+            
+            const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp"), limit(100));
+            dmMessagesUnsub = onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('messages');
+                const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+                container.innerHTML = '';
+                snapshot.forEach(ds => {
+                    const m = ds.data();
+                    const isOwn = m.user === currentUser?.name;
+                    
+                    if (!isFirstDMLoad && !seenDMMessageIds.has(ds.id) && !isOwn) {
+                        playNotificationSound();
+                    }
+                    seenDMMessageIds.add(ds.id);
+                    
+                    const avatarUrl = m.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.user || '?')}&background=9b59b6&color=fff`;
+                    
+                    let html = `<div class="message ${isOwn ? 'own' : 'other'}">`;
+                    html += `<img src="${avatarUrl}" class="avatar">`;
+                    html += `<div><strong>${m.user || 'Unknown'}:</strong><br>`;
+                    if (m.text) html += m.text;
+                    if (m.image) html += `<br><img src="${m.image}" style="max-width:200px;border-radius:8px;margin-top:5px;" ondblclick="openLightbox('${m.image}')">`;
+                    html += `</div></div>`;
+                    container.innerHTML += html;
+                });
+                isFirstDMLoad = false;
+                if (isAtBottom) container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        window.closeDM = () => {
+            if (dmMessagesUnsub) {
+                dmMessagesUnsub();
+                dmMessagesUnsub = null;
+            }
+            
+            if (currentDMChatId) {
+                const readField = `lastReadBy${currentUser.name.toLowerCase()}`;
+                updateDoc(doc(db, "chats", currentDMChatId), { [readField]: Timestamp.now() }).catch(e => console.error(e));
+            }
+            
+            currentDM = null;
+            currentDMChatId = null;
+            
+            document.getElementById('dm-header').classList.remove('active');
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('msg-input').placeholder = 'Μήνυμα...';
+            
+            startPublicMessagesListener();
+        };
+
+        window.sendMessage = async () => {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if (!text || !currentUser) return;
+            
+            if (currentDM) {
+                await addDoc(collection(db, "chats", currentDMChatId, "messages"), { 
+                    text, 
+                    user: currentUser.name, 
+                    userAvatar: currentUser.avatar, 
+                    timestamp: Timestamp.now() 
+                });
+                await updateDoc(doc(db, "chats", currentDMChatId), {
+                    lastMessage: text,
+                    lastMessageTime: Timestamp.now(),
+                    lastMessageFrom: currentUser.name
+                });
+            } else {
+                await addDoc(collection(db, "messages"), { text, user: currentUser.name, userAvatar: currentUser.avatar, timestamp: Timestamp.now() });
+            }
+            input.value = '';
+        };
+
+        window.insertEmoji = (emoji) => { document.getElementById('msg-input').value += emoji; document.getElementById('msg-input').focus(); };
+        document.getElementById('msg-input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+
+        window.openLightbox = (imageSrc) => {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            lightboxImg.src = imageSrc;
+            lightbox.classList.add('active');
+        };
+
+        window.closeLightbox = () => {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeLightbox();
+                closeClearUsersModal();
+                closeRadioModal();
+            }
+        });
+    </script>
+</body>
+</html>
