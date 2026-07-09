@@ -55,7 +55,17 @@
         #messages::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #5a9fe2, #ab69c6); }
         #messages { scrollbar-width: thin; scrollbar-color: var(--accent) rgba(255, 255, 255, 0.05); }
         
-        .message { max-width: 70%; padding: 10px 14px; border-radius: 18px; display: flex; gap: 10px; align-items: flex-start; }
+       .message { 
+    max-width: 70%; 
+    padding: 10px 14px; 
+    border-radius: 18px; 
+    display: flex; 
+    gap: 10px; 
+    align-items: flex-start; 
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
         .message.own { align-self: flex-end; background: var(--accent); flex-direction: row-reverse; }
         .message.other { align-self: flex-start; background: #333; }
         .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; cursor: pointer; }
