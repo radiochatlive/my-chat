@@ -17,7 +17,7 @@
         body { 
             font-family: 'Segoe UI', sans-serif; 
             background: var(--bg); 
-            background-image: url('fonto.jpg');
+            background-image: url('https://i.imgur.com/NMZc9VH.jpeg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -55,7 +55,6 @@
         #messages::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #5a9fe2, #ab69c6); }
         #messages { scrollbar-width: thin; scrollbar-color: var(--accent) rgba(255, 255, 255, 0.05); }
         
-        /* Διορθώθηκε το σπάσιμο των μεγάλων κειμένων */
         .message { 
             max-width: 70%; 
             padding: 10px 14px; 
@@ -70,7 +69,6 @@
         .message.own { align-self: flex-end; background: var(--accent); flex-direction: row-reverse; }
         .message.other { align-self: flex-start; background: #333; }
         
-        /* Διορθώθηκε το εσωτερικό div του μηνύματος */
         .message > div {
             flex: 1;
             min-width: 0;
@@ -293,7 +291,6 @@
         }
         #clear-progress.active { display: block; }
         
-        /* ===== RADIO MODAL - FULLSCREEN ===== */
         #radio-modal {
             position: fixed;
             top: 0;
@@ -370,7 +367,6 @@
 <body>
     <div id="bg-overlay"></div>
     
-    <!-- ===== RADIO MODAL ===== -->
     <div id="radio-modal">
         <div id="radio-modal-content">
             <button id="radio-close-btn" onclick="closeRadioModal()">✕</button>
@@ -387,7 +383,6 @@
         <div class="login-box">
             <h2>Είσοδος</h2>
             <input type="text" id="username" placeholder="Όνομα" style="width:100%; margin:10px 0; padding:10px;">
-            <!-- Νέο πεδίο για κωδικό χρήστη -->
             <input type="password" id="user-pass" placeholder="Κωδικός (για κατοχύρωση ονόματος)" style="width:100%; margin:0 0 10px 0; padding:10px;">
             <input type="password" id="admin-pass" placeholder="Κωδικός Admin (προαιρετικό)" style="width:100%; margin:0 0 10px 0; padding:10px;">
             <button onclick="enterChat()" style="width:100%;">Είσοδος</button>
@@ -417,22 +412,22 @@
                 <label>🔊 Ένταση:</label>
                 <input type="range" id="volume-slider" min="0" max="100" value="50">
                 <span id="volume-value">50%</span>
-                <button id="volume-mute-btn" onclick="toggleMute()">🔇 Mute</button>
+                <button id="volume-mute-btn" onclick="toggleMute()"> Mute</button>
             </div>
             <div class="controls">
                 <div id="emoji-panel">
                     <div id="emoji-panel-header">
                         <strong>Διάλεξε emoji</strong>
-                        <button id="emoji-panel-close" onclick="toggleEmojiPanel()"></button>
+                        <button id="emoji-panel-close" onclick="toggleEmojiPanel()">✕</button>
                     </div>
                     <div id="emoji-categories">
                         <button class="emoji-cat-btn active" onclick="showEmojiCategory('faces')">😀</button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('hands')"></button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('hands')">👍</button>
                         <button class="emoji-cat-btn" onclick="showEmojiCategory('hearts')">❤️</button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('animals')"></button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('food')"></button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('objects')"></button>
-                        <button class="emoji-cat-btn" onclick="showEmojiCategory('symbols')"></button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('animals')">🐶</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('food')">🍕</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('objects')">⚽</button>
+                        <button class="emoji-cat-btn" onclick="showEmojiCategory('symbols')">💯</button>
                     </div>
                     <div id="emoji-grid"></div>
                 </div>
@@ -444,8 +439,8 @@
                 <button id="radio-btn" class="radio-btn" onclick="toggleRadioModal()">📻 Ράδιο Live</button>
                 <button id="banned-btn" class="banned-panel-btn" onclick="openBannedPanel()" style="display:none;">🚫 Banned</button>
                 <button id="clear-chat-btn" class="clear-chat-btn" onclick="clearPublicChat()" style="display:none;">️ Καθαρισμός</button>
-                <button id="clear-users-btn" class="clear-users-btn" onclick="openClearUsersModal()" style="display:none;">🧹 Ονόματα</button>
-                <button class="theme-btn" onclick="toggleThemePanel()">🎨</button>
+                <button id="clear-users-btn" class="clear-users-btn" onclick="openClearUsersModal()" style="display:none;"> Ονόματα</button>
+                <button class="theme-btn" onclick="toggleThemePanel()"></button>
                 <button class="volume-btn" onclick="toggleVolumePanel()"> Ήχος</button>
                 <button class="logout" onclick="logout()">🚪 Αποχώρηση</button>
             </div>
@@ -459,7 +454,7 @@
     
     <div id="banned-modal">
         <div class="banned-box">
-            <h2 style="margin-top:0;"> Αποκλεισμένοι Χρήστες</h2>
+            <h2 style="margin-top:0;">🚫 Αποκλεισμένοι Χρήστες</h2>
             <div id="banned-list"></div>
             <button onclick="closeBannedPanel()" style="width:100%; margin-top:15px;">Κλείσιμο</button>
         </div>
@@ -526,7 +521,6 @@
         let publicMessagesUnsub = null;
         let pendingDMNotification = null;
         
-        // ===== Ήχος Ειδοποίησης =====
         const notificationSound = new Audio('https://cdn.pixabay.com/audio/2024/02/08/audio_b7f03fb030.mp3');
         let soundEnabled = localStorage.getItem('chatSoundEnabled') !== 'false';
         let savedVolume = parseFloat(localStorage.getItem('chatSoundVolume') || '0.5');
@@ -546,11 +540,9 @@
             setTimeout(() => { isPlayingSound = false; }, 3000);
         }
         
-        // Καθαρισμός ονομάτων - state
         let selectedPeriodDays = null;
         let usersToDelete = [];
 
-        // ===== ΣΥΝΑΡΤΗΣΗ ΚΡΥΠΤΟΓΡΑΦΗΣΗΣ ΚΩΔΙΚΟΥ =====
         async function hashPassword(password) {
             if (!password) return '';
             const encoder = new TextEncoder();
@@ -560,7 +552,6 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        // ===== RADIO MODAL =====
         window.toggleRadioModal = () => {
             const modal = document.getElementById('radio-modal');
             modal.classList.toggle('active');
@@ -632,13 +623,13 @@
         }
 
         const emojiCategories = {
-            faces: ['😀','😃','😄','😁','😆','😅','','😂','🙂','🙃','😉','😊','😇','🥰','','🤩','😘','😗','😚','😙','🥲','','','😜','🤪','😝','🤑','🤗','','🤫','🤔','','🤐','🤨','','😑','😶','🫥','😏','😒','🙄','😬','','😌','😔','','🤤','😴','😷','🤒','','🤢','🤮','','🥶','🥴','','🤯','','🥳','','','🤓','🧐','','','😟','🙁','☹️','😮','😯','','😳','','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','','😡','😠','','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'],
-            hands: ['👋','🤚','️','✋','🖖','','','🫳','','👌','','','✌️','🤞','','','🤘','','👈','','','🖕','👇','☝️','🫵','👍','','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✍️','💅','','💪','','🦿','','','👂','🦻','','','🫀','','🦷','','','👁️','👅','',''],
-            hearts: ['❤️','','💛','💚','💙','💜','🖤','','🤎','','❤️‍🔥','❤️‍','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','','😍','🥰','😘','💋','','💏','👩‍❤️‍👨','‍❤️‍👩','‍❤️‍','💌','💐','🌹','','🌺','🌸','','🌼'],
-            animals: ['','🐱','','','🐰','🦊','','','🐻‍❄️','','🐯','🦁','','🐷','🐽','','🐵','🙈','','🙊','🐒','','🐧','🐦','','🐣','🐥','','🦅','🦉','','🐺','🐗','','🦄','🐝','','🐛','🦋','','🐞','🐜','','🪲','🪳','','🦗','🕷️','🕸️','','🐢','🐍','','🦖','🦕','','🦑','🦐','','🦀','🐡','','🐟','🐬','','','🦈','','🐅','','','🦍','🦧','','','🦏','','🐫','','','🦬','🐃','','🐄','🐎','','🐏','🐑','','🐐','🦌','','🐩','🦮','‍🦺','','‍⬛','🪶','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','','','🦨','','🦫','','','🐁','🐀','️','🦔'],
-            food: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','','🌽','','🫒','','','🥔','🍠','🥐','🥯','🍞','','🥨','🧀','','🍳','🧈','','🧇','🥓','','🍗','🍖','','🌭','🍔','','🍕','🫓','','','🧆','','🌯','','','🥘','🫕','','','🍜','','🍛','','','🥟','🦪','','','🍚','','🍥','','','🍢','🍡','','🍨','🍦','','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🥛','🍼','🫖','☕','','','🥤','🧋','','','🍻','','🍷','','','🍹','🧉','','','🥄','','🍽️','','🥡','🥢',''],
-            objects: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🪃','🥅','⛳','🪁','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','','🎿','⛷️','','','🏋️','🤼','','⛹️','🤺','🤾','🏌️','🏇','🧘','','🏊','🤽','','🧗','🚵','','🏆','🥇','','🥉','🏅','️','🏵️','🎗️','🎫','🎟️','','','🎭','','🎨','','','🎧','🎼','','','🪘','','🎺','','','🪕','🎻','','♟️','🎯','','🎮','','','🚗','🚕','','🚌','🚎','️','🚓','','','🚐','🛻','','🚛','🚜','','🏍️','🛺','','🛴','🛹','','🚨','🚔','','🚘','🚖','️','🛫','🛬','️','💺','🛰️','','🛸','🚁','','⛵','🚤','️','🛳️','️','','⚓','🪝','','🚧','🚦','','🗺️','🗿','🗽','','🏰','🏯','🏟️','🎡','🎢','','⛲','⛱️','️','️','🏜️','🌋','⛰️','️','🗻','️','⛺','🛖','🏠','🏡','🏘️','🏚️','🏗️','','','🏬','🏣','','','🏦','','🏪','','','💒','🏛️','','','🕍','','🕋','️','️','🛣️','','🎑','🏞️','','','🌠','','🎆','','','🏙️','🌃','','🌉','🌁','','📱','💻','⌨️','🖥️','🖨️','🖱️','️','️','🗜️','💽','💾','💿','','','📷','📸','','','📽️','️','📞','☎️','📟','📠','📺','📻','🎙️','️','🎛️','🧭','⏱️','⏲️','','️','⌛','','📡','🔋','','💡','🔦','️','🪔','🧯','️','','💵','','💶','💷','','💰','💳','💎','⚖️','🪜','🧰','','🔧','🔨','️','️','️','🪚','','️','🪤','🧱','⛓️','🧲','🔫','💣','🧨','🪓','🔪','🗡️','⚔️','🛡️','🚬','️','🪦','⚱️','','🔮','📿','','💈','⚗️','','🔬','🕳️','','🩺','💊','💉','🩸','🧬','🦠','🧫','🧪','🌡️','🧹','🪠','','🧻','🚽','','🚿','🛁','','🧼','🪥','','🧽','','🧴','️','','🗝️','🚪','🪑','🛋️','🛏️','🛌','🧸','','️','🪞','','🛍️','🛒','🎁','🎈','🎏','🎀','🪄','🪅','🎊','🎉','🎎','🏮','🎐','🧧','✉️','📩','📨','','💌','📥','','','🏷️','','📪','','','📭','📮','','','📃','','📑','','','📈','📉','️','🗓️','','📅','️','','🗃️','🗳️','🗄️','📋','','','🗂️','️','📰','📓','📔','📒','📕','','📘','📙','','','🔖','','🔗','','️','📐','📏','','📌','📍','️','️','🖋️','✒️','🖌️','️','📝','✏️','','🔎','🔏','','🔒','🔓'],
-            symbols: ['💯','❤️','💔','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','️','☸️','️','🔯','🕎','️','☦️','','','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','','','🈲','️','🅱️','🆎','🆑','🅾️','','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','','','🚳','','🔞','','','❗','❕','❓','❔','‼️','⁉️','','','〽️','️','🚸','🔱','️','🔰','️','✅','🈯','','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','','','🅿️','🛗','','🈂️','🛂','🛃','🛄','🛅','','🚺','🚼','','🚻','🚮','','📶','','🔣','ℹ️','','🔡','🔠','','🆗','🆙','','🆕','🆓','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','','🔢','#️⃣','*️⃣','⏏️','▶️','⏸️','⏯️','️','⏺️','⏭️','️','⏩','','⏫','⏬','️','🔼','','️','⬅️','⬆️','⬇️','↗️','️','↙️','↖️','️','↔️','↪️','️','⤴️','⤵️','🔀','🔁','','🔄','🔃','','🎶','➕','','➗','✖️','🟰','♾️','💲','💱','™️','©️','®️','👁️‍🗨️','🔚','','🔛','🔝','','〰️','➰','➿','✔️','☑️','','🔴','🟠','','🟢','🔵','','⚫','⚪','','🔺','🔻','','🔹','🔶','','🔳','🔲','▪️','▫️','◾','','◼️','◻️','','🟧','🟨','','🟦','🟪','','⬜','🟫','','🔇','🔉','','🔔','🔕','','','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','','🀄','','','🕒','🕓','','🕕','🕖','','🕘','🕙','','🕛']
+            faces: ['😀','😃','😄','😁','😆','😅','','😂','🙂','🙃','😉','😊','😇','🥰','','🤩','😘','😗','😚','😙','🥲','','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','🫥','','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','','😕','🫤','😟','🙁','☹️','😮','','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','','😤','😡','😠','🤬','😈','👿','','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'],
+            hands: ['👋','','🖐️','✋','🖖','🫱','🫲','🫳','🫴','','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','','✊','👊','','🤜','👏','','🫶','👐','','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','','👃','🧠','','🫁','🦷','🦴','👀','👁️','👅','👄',''],
+            hearts: ['❤️','🧡','💛','💚','','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕','💞','💓','💗','💖','','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','','🕎','☯️','️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','','💮','🉐','️','㊗️','','🈵','🈹','','🅰️','🅱️','🆎','🆑','️','🆘','❌','','🛑','⛔','','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','','❕','❓','❔','‼️','⁉️','🔅','','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','','♿','🅿️','🛗','🈳','️','🛂','🛃','🛄','🛅','🚰','🚹','🚺','🚼','🚻','🚮','','📶','🈁','','ℹ️','🔤','🔡','🔠','','🆙','🆒','🆕','🆓','0️','1️⃣','2️','3️⃣','4️','5️⃣','6️','7️⃣','8️','9️⃣','🔟','🔢','#️⃣','*️⃣','⏏️','▶️','⏸️','⏯️','️','⏺️','⏭️','⏮️','⏩','','⏫','⏬','️','🔼','🔽','➡️','⬅️','⬆️','⬇️','↗️','↘️','↙️','↖️','↕️','↔️','↪️','↩️','⤴️','⤵️','🔀','','🔂','🔄','','🎵','🎶','➕','➖','➗','✖️','🟰','♾️','💲','💱','™️','©️','®️','👁️‍🗨️','','🔙','🔛','','🔜','〰️','➰','➿','✔️','☑️','🔘','🔴','🟠','🟡','','🔵','🟣','','⚪','🟤','🔺','🔻','','🔹','🔶','','🔳','🔲','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','🟫','🔈','🔇','🔉','🔊','🔔','🔕','📣','📢','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','🎴','🀄','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛'],
+            animals: ['🐶','🐱','','🐹','🐰','','🐻','🐼','‍❄️','','🐯','🦁','','🐷','🐽','','🐵','🙈','','🙊','🐒','','🐧','🐦','','🐣','🐥','','🦅','🦉','','🐺','🐗','','🦄','🐝','','🐛','🦋','','🐞','🐜','','🪲','🪳','','🦗','🕷️','️','🦂','🐢','🐍','🦎','','🦕','🐙','','🦐','🦀','','🐟','🐬','🐳','🐋','','🦭','🐊','','🐆','🦓','','🦧','🐘','','🦏','🐪','','🦒','🦘','🦬','🐃','🐂','','🐎','🐖','','🐑','🦙','','🦌','🐕','','🦮','🐕‍','🐈','🐈⬛','🪶','','🦃','🦤','','🦜','🦢','','🕊️','🐇','','🦨','🦡','🦫','🦦','🦥','🐁','🐀','️','🦔'],
+            food: ['🍏','🍎','','🍊','🍋','','🍉','🍇','','🫐','🍈','','🍑','🥭','','🥥','🥝','','🍆','🥑','','🥬','🥒','️','🫑','🌽','','🫒','','🧅','🥔','','🥐','🥯','','🥖','🥨','','🥚','🍳','','🥞','🧇','','🥩','🍗','','🦴','🌭','','🍟','🍕','','🥪','🥙','','🌮','🌯','','🥗','🥘','','🥫','🍝','','🍲','🍛','','🍱','🥟','','🍤','🍙','','🍘','🍥','','🥮','🍢','','🍧','🍨','','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','','🥜','🍯','','🍼','🫖','☕','🍵','🧃','','🧋','🍶','','🍻','🥂','','🥃','🍸','','🧉','🍾','','🥄','🍴','️','🥣','🥡','','🧂'],
+            objects: ['⚽','🏀','','⚾','🥎','','🏐','🏉','','🎱','🪀','','🏸','🏒','','🥍','🏏','','🥅','⛳','','🏹','🎣','','🥊','🥋','','🛹','🛼','','⛸️','🥌','🎿','⛷️','','🪂','🏋️','🤼','🤸','⛹️','🤺','🤾','️','🏇','🧘','🏄','🏊','','🚣','🧗','','🚴','🏆','','🥈','🥉','','🎖️','🏵️','🎗️','🎫','️','🎪','🤹','','🩰','🎨','🎬','🎤','🎧','🎼','🎹','','🪘','🎺','🪗','🎸','🪕','🎻','🎲','️','🎯','🎳','🎮','🎰','','🚗','🚕','','🚌','🚎','️','🚓','🚑','','🚐','🛻','','🚛','🚜','️','🛵','','🚲','🛴','','🛼','🚨','','🚍','🚘','','🛎️','','⌛','⏳','','⏰','⏱️','⏲️','🕰️','🕛','🕧','🕐','🕜','🕑','🕝','🕒','🕞','🕓','🕟','🕔','🕠','🕕','🕡','🕖','🕢','🕗','🕣','🕘','🕤','🕙','🕥','🕚','🕦','🌑','','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','🌡️','️','🌝','🌞','','⭐','🌟','🌠','🌌','☁️','⛅','⛈️','🌤️','️','🌦️','🌧️','🌨️','🌩️','🌪️','🌫️','🌬️','🌀','🌈','🌂','☂️','☔','⛱️','⚡','️','☃️','⛄','☄️','🔥','','🌊','🎃','','🎆','🎇','','✨','🎈','','🎊','🎋','','🎎','🎏','','🎑','🧧','','🎁','🎗️','️','🎫','🎖️','🏆','🏅','','🥈','🥉','','⚾','','🏀','🏐','🏈','🏉','','🥏','🎳','','🏑','🏒','','🏓','🏸','','🥋','🥅','⛳','⛸️','','🤿','🎽','','🛷','🥌','','🪀','🪁','','🔮','🪄','','🎮','🕹️','🎰','🎲','','🧸','🪅','','♠️','♥️','♦️','♣️','♟️','','🀄','','🎭','🖼️','','🧵','','🧶','👓','️','🥽','','🦺','👔','','👖','🧣','🧤','🧥','🧦','👗','👘','','🩱','🩲','','👙','👚','','👜','👝','️','🎒','🩴','','👟','🥾','🥿','👠','👡','🩰','👢','','👒','🎩','','🧢','🪖','️','📿','💄','💍','💎','🔇','','🔉','🔊','','📣','📯','','🔕','🎼','','🎶','🎙️','🎚️','🎛️','🎤','🎧','','🎷','🪗','','🎹','🎺','','🪕','🥁','','📱','📲','️','📞','','📠','🔋','','💻','🖥️','🖨️','⌨️','️','🖲️','💽','💾','💿','📀','','🎥','️','📽️','','📺','📷','','📹','📼','','🔎','🕯️','','🔦','🏮','','📔','📕','📖','📗','📘','📙','📚','','📒','📃','','📄','📰','️','📑','','🏷️','💰','','💴','💵','','💷','💸','💳','','💹','✉️','','📨','📩','','📥','📦','','📪','📬','','📮','🗳️','✏️','✒️','🖋️','🖊️','🖌️','🖍️','📝','','📁','📂','️','📅','','🗒️','🗓️','📇','📈','','📊','📋','','📍','📎','️','📏','','✂️','🗃️','🗄️','🗑️','🔒','🔓','🔏','🔐','🔑','🗝️','🔨','🪓','⛏️','⚒️','🛠️','🗡️','⚔️','🔫','','🏹','️','🪚','🔧','','🔩','⚙️','🗜️','⚖️','','🔗','⛓️','🪝','🧰','🧲','🪜','️','🧪','🧫','','🔬','🔭','','💉','🩸','','🩹','🩺','🩼','🚪','','🪞','🪟','️','🛋️','🪑','🚽','🪠','','🛁','🪤','','🧴','🧷','','🧺','🧻','','🧼','🪥','','🧯','🛒','','⚰️','','⚱️','','🪧','🪪'],
+            symbols: ['🏧','🚮','🚰','','🚹','🚺','','🚼','🚾','','🛃','🛄','🛅','⚠️','🚸','⛔','🚫','🚳','🚭','🚯','🚱','🚷','','🔞','☢️','️','⬆️','↗️','➡️','↘️','⬇️','↙️','⬅️','↖️','↕️','↔️','↩️','↪️','️','⤵️','','🔄','🔙','','🔛','🔜','','🛐','⚛️','🕉️','✡️','☸️','☯️','️','☦️','☪️','️','🕎','🔯','','♉','♊','♋','','♍','♎','♏','','♑','♒','♓','','🔀','🔁','🔂','▶️','','⏭️','⏯️','◀️','⏪','⏮️','🔼','⏫','🔽','','⏸️','️','⏺️','⏏️','🎦','🔅','🔆','📶','📳','📴','♀️','♂️','️','✖️','➕','','➗','♾️','‼️','⁉️','❓','❔','❕','❗','〰️','💱','💲','⚕️','♻️','⚜️','','📛','🔰','','✅','☑️','✔️','❌','❎','','➿','〽️','️','✴️','❇️','©️','®️','™️','#️⃣','*️⃣','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','🔠','🔡','🔢','🔣','','🅰️','🆎','🅱️','🆑','','🆓','ℹ️','','Ⓜ️','','🆖','🅾️','','🅿️','🆘','🆙','🆚','','🈂️','🈷️','🈶','🈯','','🈹','🈚','','🉑','🈸','','🈳','㊗️','㊙️','','🈵','🔴','','🟡','🟢','','🟣','🟤','','⚪','🟥','🟧','🟨','🟩','🟦','🟪','','⬛','⬜','️','◻️','◾','◽','▪️','▫️','🔶','🔷','','🔹','🔺','','💠','🔘','','🔲']
         };
 
         document.getElementById('toggle-sidebar').addEventListener('click', () => {
@@ -728,7 +719,6 @@
             updateSidebarOpacity(value / 100);
         });
         
-        // ===== Volume Slider =====
         const volumeSlider = document.getElementById('volume-slider');
         const volumeValue = document.getElementById('volume-value');
         volumeSlider.value = Math.round(savedVolume * 100);
@@ -741,7 +731,6 @@
             localStorage.setItem('chatSoundVolume', (value / 100).toString());
         });
         
-        // Αρχικό mute button state
         if (!soundEnabled) {
             const muteBtn = document.getElementById('volume-mute-btn');
             muteBtn.textContent = '🔊 Unmute';
@@ -750,9 +739,12 @@
 
         window.onload = async () => {
             const savedName = localStorage.getItem('chatUserName');
-            if (savedName) {
+            const savedPass = localStorage.getItem('chatUserPass');
+            
+            if (savedName && savedPass) {
                 document.getElementById('username').value = savedName;
-                // Δεν κάνουμε αυτόματη είσοδο αν δεν υπάρχει κωδικός, πρέπει να τον ξαναβάλει
+                document.getElementById('user-pass').value = savedPass;
+                await enterChat(true);
             }
         };
 
@@ -762,6 +754,7 @@
             stopRadio();
             currentUser = null;
             localStorage.removeItem('chatUserName');
+            localStorage.removeItem('chatUserPass');
             document.getElementById('chat-container').style.display = 'none';
             document.getElementById('login-modal').style.display = 'flex';
             document.getElementById('username').value = '';
@@ -822,30 +815,27 @@
             const adminPass = document.getElementById('admin-pass').value.trim();
             
             if (!name) return alert("Βάλε όνομα");
-            if (!userPass) return alert("Βάλε κωδικό για να κατοχυρώσεις το όνομά σου!");
+            if (!userPass) return alert("Βάλε κωδικό!");
             
             const bannedDoc = await getDoc(doc(db, "banned", name));
-            if (bannedDoc.exists()) {
-                return alert("🚫 Έχεις αποκλειστεί από το chat!");
-            }
+            if (bannedDoc.exists()) return alert("🚫 Έχεις αποκλειστεί!");
             
             const userDocRef = doc(db, "users", name);
             const userDoc = await getDoc(userDocRef);
+            const hashedInputPass = await hashPassword(userPass);
             
             if (userDoc.exists()) {
                 const existingUser = userDoc.data();
                 
-                // Έλεγχος κωδικού για υπάρχοντα χρήστη
-                const hashedInputPass = await hashPassword(userPass);
-                if (existingUser.password && existingUser.password !== hashedInputPass) {
-                    return alert("❌ Λάθος κωδικός! Το όνομα αυτό είναι κατοχυρωμένο.");
+                // ΑΥΣΤΗΡΟΣ ΕΛΕΓΧΟΣ - πρέπει οπωσδήποτε να ταιριάζει ο κωδικός
+                if (!existingUser.password || existingUser.password !== hashedInputPass) {
+                    return alert("❌ Λάθος κωδικός! Το όνομα είναι κατοχυρωμένο.");
                 }
                 
                 currentUser = { name, avatar: existingUser.avatar || '', isAdmin: existingUser.isAdmin || false };
             } else {
-                // Νέος χρήστης - αποθήκευση κωδικού
-                const hashedPass = await hashPassword(userPass);
-                currentUser = { name, avatar: '', isAdmin: false, password: hashedPass };
+                // Νέος χρήστης
+                currentUser = { name, avatar: '', isAdmin: false, password: hashedInputPass };
             }
             
             if (name.toLowerCase() === ADMIN_NAME.toLowerCase() && adminPass === ADMIN_PASS) {
@@ -853,10 +843,11 @@
             }
             
             localStorage.setItem('chatUserName', name);
+            localStorage.setItem('chatUserPass', userPass);
+            
             document.getElementById('login-modal').style.display = 'none';
             document.getElementById('chat-container').style.display = 'flex';
             
-            // Ξεκινάει το ραδιόφωνο στο background μόλις γίνει login
             startRadio();
             
             if (currentUser.isAdmin) {
@@ -865,18 +856,13 @@
                 document.getElementById('clear-users-btn').style.display = 'inline-block';
             }
             
-            // Αποθήκευση/Ενημέρωση στη βάση
-            const saveData = { 
+            await setDoc(userDocRef, { 
                 name: currentUser.name,
                 avatar: currentUser.avatar,
                 isAdmin: currentUser.isAdmin,
+                password: currentUser.password || hashedInputPass,
                 lastSeen: Timestamp.now() 
-            };
-            if (currentUser.password) {
-                saveData.password = currentUser.password;
-            }
-            
-            await setDoc(userDocRef, saveData);
+            });
             
             setInterval(() => {
                 if(currentUser) updateDoc(userDocRef, { lastSeen: Timestamp.now() }).catch(e => console.error(e));
@@ -884,9 +870,7 @@
             
             if (banUnsub) banUnsub();
             banUnsub = onSnapshot(doc(db, "banned", currentUser.name), (snap) => {
-                if (snap.exists()) {
-                    kickUser("🚫 Ο διαχειριστής σε απέκλεισε από το chat!");
-                }
+                if (snap.exists()) kickUser(" Ο διαχειριστής σε απέκλεισε!");
             });
 
             startDMNotificationsListener();
@@ -896,7 +880,7 @@
         window.logout = async () => {
             if (!currentUser) return;
             
-            if (!confirm("Θέλεις να αποσυνδεθείς; Θα εμφανίζεσαι ως offline αλλά θα διατηρήσεις το όνομα και τη φωτογραφία σου.")) {
+            if (!confirm("Θέλεις να αποσυνδεθείς;")) {
                 return;
             }
             
@@ -905,14 +889,13 @@
             if (dmNotificationUnsub) dmNotificationUnsub();
             stopPublicMessagesListener();
             
-            // Σταματάει το ραδιόφωνο
             stopRadio();
             
             try {
-                // ΔΕΝ διαγράφουμε τον χρήστη, απλά τον βγάζουμε offline
                 await updateDoc(doc(db, "users", currentUser.name), { lastSeen: Timestamp.fromMillis(0) }).catch(e => console.error(e));
                 
                 localStorage.removeItem('chatUserName');
+                localStorage.removeItem('chatUserPass');
                 currentUser = null;
                 currentDM = null;
                 currentDMChatId = null;
@@ -933,7 +916,7 @@
                     bannedBy: currentUser.name,
                     bannedAt: Timestamp.now()
                 });
-                alert(`Ο ${userName} αποκλείστηκε! Θα πεταχτεί σε 2 δευτερόλεπτα.`);
+                alert(`Ο ${userName} αποκλείστηκε!`);
             } catch(e) {
                 alert("Σφάλμα: " + e.message);
             }
@@ -995,7 +978,7 @@
         window.clearPublicChat = async () => {
             if (!currentUser?.isAdmin) return;
             
-            if (!confirm("⚠️ Είσαι σίγουρος ότι θέλεις να διαγράψεις ΟΛΑ τα δημόσια μηνύματα;\n\nΑυτή η ενέργεια δεν αναιρείται!")) {
+            if (!confirm("️ Είσαι σίγουρος ότι θέλεις να διαγράψεις ΟΛΑ τα δημόσια μηνύματα;")) {
                 return;
             }
             
@@ -1032,12 +1015,11 @@
                 setTimeout(() => progressEl.classList.remove('active'), 3000);
                 
             } catch(err) {
-                progressEl.textContent = '❌ Σφάλμα κατά τη διαγραφή: ' + err.message;
+                progressEl.textContent = '❌ Σφάλμα: ' + err.message;
                 setTimeout(() => progressEl.classList.remove('active'), 5000);
             }
         };
 
-        // ===== ΚΑΘΑΡΙΣΜΟΣ ΟΝΟΜΑΤΩΝ =====
         window.openClearUsersModal = () => {
             if (!currentUser?.isAdmin) return;
             
@@ -1114,7 +1096,7 @@
                 
                 if (usersToDelete.length === 0) {
                     previewEl.style.display = 'block';
-                    listEl.innerHTML = '<div style="text-align:center; color:#888; padding:10px;">Δεν βρέθηκαν ονόματα για διαγραφή σε αυτό το διάστημα.</div>';
+                    listEl.innerHTML = '<div style="text-align:center; color:#888; padding:10px;">Δεν βρέθηκαν ονόματα.</div>';
                     document.getElementById('execute-clear-btn').disabled = true;
                 } else {
                     previewEl.style.display = 'block';
@@ -1124,14 +1106,14 @@
                     document.getElementById('execute-clear-btn').disabled = false;
                 }
             } catch(err) {
-                alert("Σφάλμα κατά την ανάγνωση: " + err.message);
+                alert("Σφάλμα: " + err.message);
             }
         };
 
         window.executeClearUsers = async () => {
             if (!currentUser?.isAdmin || usersToDelete.length === 0) return;
             
-            if (!confirm(`⚠️ ΠΡΟΣΟΧΗ!\n\nΘα διαγραφούν οριστικά ${usersToDelete.length} ονόματα ΚΑΙ όλα τα μηνύματά τους (δημόσια + DMs).\n\nΑυτή η ενέργεια δεν αναιρείται!\n\nΣυνέχεια;`)) {
+            if (!confirm(`⚠️ Θα διαγραφούν ${usersToDelete.length} ονόματα. Συνέχεια;`)) {
                 return;
             }
             
@@ -1145,21 +1127,17 @@
             try {
                 for (let i = 0; i < usersToDelete.length; i++) {
                     const user = usersToDelete[i];
-                    progressEl.textContent = ` Διαγραφή ${i + 1}/${usersToDelete.length}: ${user.name}...`;
+                    progressEl.textContent = `🧹 Διαγραφή ${i + 1}/${usersToDelete.length}: ${user.name}...`;
                     
                     try {
                         const publicMsgs = await getDocs(collection(db, "messages"));
-                        let userMsgs = [];
                         publicMsgs.forEach(d => {
                             if (d.data().user === user.name) {
-                                userMsgs.push(d.ref);
+                                deleteDoc(d.ref);
+                                totalMessagesDeleted++;
                             }
                         });
-                        for (const ref of userMsgs) {
-                            await deleteDoc(ref);
-                            totalMessagesDeleted++;
-                        }
-                    } catch(e) { console.error("Σφάλμα διαγραφής δημοσίων:", e); }
+                    } catch(e) { console.error(e); }
                     
                     try {
                         const chatsSnap = await getDocs(collection(db, "chats"));
@@ -1175,22 +1153,22 @@
                                 await deleteDoc(chatDoc.ref);
                             }
                         }
-                    } catch(e) { console.error("Σφάλμα διαγραφής DMs:", e); }
+                    } catch(e) { console.error(e); }
                     
                     try {
                         await deleteDoc(doc(db, "users", user.name));
-                    } catch(e) { console.error("Σφάλμα διαγραφής user:", e); }
+                    } catch(e) { console.error(e); }
                     
                     totalDeleted++;
                 }
                 
-                progressEl.textContent = `✅ Ολοκληρώθηκε! Διαγράφηκαν ${totalDeleted} ονόματα και ${totalMessagesDeleted} μηνύματα.`;
+                progressEl.textContent = `✅ Ολοκληρώθηκε! Διαγράφηκαν ${totalDeleted} ονόματα.`;
                 setTimeout(() => {
                     closeClearUsersModal();
                 }, 3000);
                 
             } catch(err) {
-                progressEl.textContent = '❌ Σφάλμα: ' + err.message;
+                progressEl.textContent = ' Σφάλμα: ' + err.message;
                 setTimeout(() => progressEl.classList.remove('active'), 5000);
             }
         };
@@ -1205,7 +1183,7 @@
                 await updateDoc(doc(db, "users", currentUser.name), { avatar: currentUser.avatar });
                 alert('Η φωτογραφία σου άλλαξε!');
             } catch(err) {
-                alert('Σφάλμα κατά τη μεταφόρτωση: ' + err.message);
+                alert('Σφάλμα: ' + err.message);
             }
         });
 
@@ -1219,7 +1197,7 @@
             const fileSizeMB = file.size / (1024 * 1024);
             
             if (fileSizeMB > maxSizeMB) {
-                alert(`️ Η φωτογραφία είναι πολύ μεγάλη!\n\nΜέγεθος: ${fileSizeMB.toFixed(2)}MB\nΜέγιστο επιτρεπτό: ${maxSizeMB}MB\n\nΠαρακαλώ επέλεξε μικρότερη φωτογραφία.`);
+                alert(`⚠️ Η φωτογραφία είναι πολύ μεγάλη!`);
                 e.target.value = '';
                 return;
             }
@@ -1229,13 +1207,6 @@
                 
                 if (file.type === 'image/gif') {
                     imageData = await readFileAsDataURL(file);
-                    
-                    const sizeInMB = (imageData.length * 0.75) / (1024 * 1024);
-                    if (sizeInMB > 0.95) {
-                        alert(`⚠️ Το GIF είναι πολύ μεγάλο μετά τη μετατροπή!\n\nΜέγεθος: ${sizeInMB.toFixed(2)}MB\nΜέγιστο επιτρεπτό: 0.95MB\n\nΠαρακαλώ επέλεξε μικρότερο GIF.`);
-                        e.target.value = '';
-                        return;
-                    }
                 } else {
                     imageData = await compressImage(file, 800, 0.7);
                 }
@@ -1257,7 +1228,7 @@
                 }
                 e.target.value = '';
             } catch(err) {
-                alert('Σφάλμα κατά τη μεταφόρτωση: ' + err.message);
+                alert('Σφάλμα: ' + err.message);
                 e.target.value = '';
             }
         });
@@ -1277,7 +1248,7 @@
                     onlineCount++;
                     const isSelf = d.id === currentUser?.name;
                     const avatarUrl = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=4a90e2&color=fff`;
-                    const adminBadge = u.isAdmin ? '<span class="admin-badge"> Admin</span>' : '';
+                    const adminBadge = u.isAdmin ? '<span class="admin-badge">👑 Admin</span>' : '';
                     
                     const userDiv = document.createElement('div');
                     userDiv.className = 'user-item';
@@ -1331,7 +1302,7 @@
                 const notifEl = document.getElementById('dm-notification');
                 if (showNotification) {
                     pendingDMNotification = { chatId: notifChatId, partnerName: notifPartner };
-                    document.getElementById('dm-notification-text').textContent = ` Νέο μήνυμα από ${notifPartner}`;
+                    document.getElementById('dm-notification-text').textContent = `💬 Νέο μήνυμα από ${notifPartner}`;
                     notifEl.classList.add('active');
                 } else if (!pendingDMNotification) {
                     notifEl.classList.remove('active');
