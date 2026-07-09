@@ -66,8 +66,15 @@
             overflow-wrap: break-word;
             word-break: break-word;
         }
-        .message.own { align-self: flex-end; background: var(--accent); flex-direction: row-reverse; }
-        .message.other { align-self: flex-start; background: #333; }
+        .message.own { 
+    align-self: flex-end; 
+    background: rgba(255, 0, 255, 0.15); /* 30% ορατό - οζ διάφανο */
+    flex-direction: row-reverse; 
+}
+.message.other { 
+    align-self: flex-start; 
+    background: rgba(255, 255, 255, 0.15); /* 15% ορατό - λευκό διάφανο */
+}
         
         .message > div {
             flex: 1;
