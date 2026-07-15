@@ -628,27 +628,50 @@
             }
         }
 
-        window.deleteImage = async (msgId, deletehash, type) => {
-            if (!currentUser?.isAdmin) return;
-            if (!confirm('⚠️ Διαγραφή ΤΕΛΕΙΩΣ από παντού (Imgur και Chat);')) return;
-            
-            try {
-                await fetch(`https://api.imgur.com/3/image/${deletehash}`, { 
-                    method: "DELETE", 
-                    headers: { "Authorization": "Client-ID 546c25a59c58ad7" } 
-                });
-                
-                if (type === 'public') {
-                    await deleteDoc(doc(db, "messages", msgId));
-                } else if (type === 'dm') {
-                    await deleteDoc(doc(db, "chats", currentDMChatId, "messages", msgId));
-                }
-                
-                alert('✅ Η εικόνα διαγράφηκε επιτυχώς από παντού!');
-            } catch(err) {
-                alert('Σφάλμα κατά τη διαγραφή: ' + err.message);
+       window.deleteImage = async (msgId, deletehash, type) => {
+    if (!currentUser?.isAdmin) return;
+    
+    if (!deletehash) {
+        alert("⚠️ Σφάλμα: Δεν υπάρχει κωδικός διαγραφής (deletehash) για αυτή την εικόνα. Δεν μπορεί να διαγραφεί από το Imgur.");
+        return;
+    }
+
+    if (!confirm('⚠️ Διαγραφή ΤΕΛΕΙΩΣ από παντού (Imgur και Chat);\n\nΑυτό είναι μη αναστρέψιμο.')) return;
+
+    try {
+        // 1. Αίτηση διαγραφής στο Imgur
+        const response = await fetch(`https://api.imgur.com/3/image/${deletehash}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": "Client-ID 546c25a59c58ad7"
             }
-        };
+        });
+
+        const result = await response.json();
+
+        // 2. ΑΥΣΤΗΡΟΣ ΕΛΕΓΧΟΣ: Αν το Imgur δεν επιστρέψει επιτυχία, ΣΤΑΜΑΤΑΜΕ ΕΔΩ.
+        if (!response.ok || !result.success) {
+            const errorMsg = result.data?.error || `Σφάλμα HTTP: ${response.status} ${response.statusText}`;
+            console.error("Imgur Delete Error:", result);
+            
+            alert(`❌ ΑΠΟΤΥΧΙΑ ΔΙΑΓΡΑΦΗΣ ΑΠΟ IMGUR!\n\nΑιτία: ${errorMsg}\n\nΗ διαγραφή από τη βάση δεδομένων ΑΚΥΡΩΘΗΚΕ για ασφάλεια.`);
+            return; // ΔΕΝ διαγράφουμε από τη βάση αν αποτύχει το Imgur
+        }
+
+        // 3. ΜΟΝΟ αν το Imgur επέστρεψε επιτυχία, διαγράφουμε και από το Firestore
+        if (type === 'public') {
+            await deleteDoc(doc(db, "messages", msgId));
+        } else if (type === 'dm') {
+            await deleteDoc(doc(db, "chats", currentDMChatId, "messages", msgId));
+        }
+
+        alert('✅ Η εικόνα διαγράφηκε ΕΠΙΤΥΧΩΣ από παντού (Imgur και Chat)!');
+
+    } catch(err) {
+        console.error("Delete Network Error:", err);
+        alert(`❌ Σφάλμα δικτύου κατά τη διαγραφή: ${err.message}`);
+    }
+};
 
         window.toggleRadioModal = () => {
             const modal = document.getElementById('radio-modal');
